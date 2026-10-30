@@ -41,31 +41,11 @@ S = ob.dimensions.z / 1.0            # modello gia' in metri
 
 
 # ------------------------------------------------- normale double-sided ------
-def fix_backfaces():
-    mat = ob.data.materials[0]
-    nt = mat.node_tree
-    bsdf = next(n for n in nt.nodes if n.type == 'BSDF_PRINCIPLED')
-    nrm_map = next((n for n in nt.nodes if n.type == 'NORMAL_MAP'), None)
-    if nrm_map is None or bsdf.inputs["Normal"].is_linked is False:
-        return
-    geo = nt.nodes.new("ShaderNodeNewGeometry"); geo.location = (-300, -700)
-    neg = nt.nodes.new("ShaderNodeVectorMath"); neg.location = (-250, 150)
-    neg.operation = 'SCALE'
-    neg.inputs["Scale"].default_value = -1.0
-    mix = nt.nodes.new("ShaderNodeMix"); mix.location = (100, 0)
-    mix.data_type = 'VECTOR'
-    src = nrm_map.outputs["Normal"]
-    va = next(s for s in mix.inputs if s.name == "A" and s.type == 'VECTOR')
-    vb = next(s for s in mix.inputs if s.name == "B" and s.type == 'VECTOR')
-    vout = next(s for s in mix.outputs if s.name == "Result" and s.type == 'VECTOR')
-    nt.links.new(src, neg.inputs[0])
-    nt.links.new(src, va)
-    nt.links.new(neg.outputs["Vector"], vb)
-    nt.links.new(geo.outputs["Backfacing"], mix.inputs[0])
-    nt.links.new(vout, bsdf.inputs["Normal"])
-
-
-fix_backfaces()
+# NOTA: qui *non* si ribalta la normale sulle facce posteriori. Cycles lo fa
+# gia' da solo quando la faccia e' vista da dietro; farlo una seconda volta
+# mandava la normale dentro il materiale e la fodera interna del gonnellone
+# diventava nera (le "macchie" nere della v2). Il materiale e' double-sided
+# per il motore, ma nei render non serve nessun nodo extra.
 
 # --------------------------------------------------------------- scenario ----
 for o in list(bpy.data.objects):
@@ -133,17 +113,37 @@ def bbox():
     return mathutils.Vector((mn + mx) / 2), mathutils.Vector(mx - mn)
 
 
-def camera(center, size, azimuth=32.0, elevation=0.28, zoom=1.0, lens=72):
+def camera(center, size, azimuth=32.0, elevation=0.28, zoom=1.0, lens=72,
+           res=(1000, 1000), margin=1.12):
+    """Inquadra il soggetto **per intero** a prescindere dal formato.
+
+    La versione precedente calcolava la distanza da `max(size)` senza tenere
+    conto del rapporto d'aspetto: con i GIF 340x265 il campo verticale era piu'
+    stretto e la testa e i piedi finivano fuori quadro. Qui si usa la sfera che
+    contiene il soggetto e il FOV *piu' stretto* fra orizzontale e verticale.
+    """
     camd = bpy.data.cameras.new("Cam")
     camd.lens = lens
+    camd.sensor_fit = 'AUTO'
+    camd.sensor_width = 36.0
     cam = bpy.data.objects.new("Cam", camd)
     sc.collection.objects.link(cam)
     sc.camera = cam
+    aspect = res[0] / res[1]
+    if aspect >= 1.0:
+        fov_x = 2 * math.atan(36.0 / (2 * lens))
+        fov_y = 2 * math.atan((36.0 / aspect) / (2 * lens))
+    else:
+        fov_y = 2 * math.atan(36.0 / (2 * lens))
+        fov_x = 2 * math.atan((36.0 * aspect) / (2 * lens))
+    radius = 0.5 * math.sqrt(size.x ** 2 + size.y ** 2 + size.z ** 2)
+    dist = radius / math.tan(min(fov_x, fov_y) / 2) * margin / zoom
     a = math.radians(azimuth)
-    dist = max(size) * 2.5 / zoom
-    cam.location = center + mathutils.Vector(
-        (math.sin(a) * dist * 0.72, -math.cos(a) * dist, size[2] * elevation))
-    target = center + mathutils.Vector((0, 0, size[2] * 0.03))
+    elev = max(0.0, elevation)
+    target = center
+    cam.location = target + mathutils.Vector(
+        (math.sin(a) * dist * 0.86, -math.cos(a) * dist,
+         dist * 0.16 * elev))
     cam.rotation_euler = (target - cam.location).to_track_quat('-Z', 'Y').to_euler()
     for o in list(bpy.data.objects):
         if o.type == 'CAMERA' and o is not cam:
@@ -172,7 +172,7 @@ def render(path, res=900, aspect=1.0, samples=72):
     sc.render.film_transparent = False
     sc.view_settings.view_transform = 'AgX'
     sc.view_settings.look = 'AgX - Medium High Contrast'
-    sc.view_settings.exposure = -0.35
+    sc.view_settings.exposure = -0.15
     sc.render.image_settings.file_format = 'PNG'
     sc.render.filepath = path
     bpy.context.view_layer.update()
@@ -188,7 +188,7 @@ def render_stills():
     world((0.010, 0.013, 0.020))
     clear_lights()
     lights(c, 1.0)
-    camera(c, s, azimuth=-38, elevation=0.12, zoom=0.92)
+    camera(c, s, azimuth=-38, elevation=0.12, zoom=0.94, res=(1000, 1000))
     render(os.path.join(OUTDIR, "hero_cast.png"), 1000, 1.0, 96)
 
     # 2) idle, tre quarti con rim freddo
@@ -197,7 +197,7 @@ def render_stills():
     world((0.008, 0.010, 0.016))
     clear_lights()
     lights(c, 0.85)
-    camera(c, s, azimuth=34, elevation=0.13, zoom=0.92)
+    camera(c, s, azimuth=34, elevation=0.13, zoom=0.94, res=(1000, 1000))
     render(os.path.join(OUTDIR, "hero_idle.png"), 1000, 1.0, 96)
 
     # 3) primo piano del viso: inquadratura agganciata all'osso della testa
@@ -206,6 +206,7 @@ def render_stills():
     pb = arm.pose.bones["head"]
     head = arm.matrix_world @ (pb.head + (pb.tail - pb.head) * 0.55)
     world((0.008, 0.010, 0.015))
+    ground.hide_render = True              # niente linea d'orizzonte dietro il collo
     clear_lights()
     for name, D, energy, size, col in (
             ("Key", (0.42, -0.75, 0.30), 26, 0.55, (1.00, 0.92, 0.82)),
@@ -224,6 +225,7 @@ def render_stills():
             bpy.data.objects.remove(o, do_unlink=True)
     bpy.context.view_layer.update()
     render(os.path.join(OUTDIR, "hero_head.png"), 950, 1.0, 110)
+    ground.hide_render = False
 
 
 def render_head_only():
@@ -233,6 +235,7 @@ def render_head_only():
     pb = arm.pose.bones["head"]
     head = arm.matrix_world @ (pb.head + (pb.tail - pb.head) * 0.55)
     world((0.008, 0.010, 0.015))
+    ground.hide_render = True              # niente linea d'orizzonte dietro il collo
     clear_lights()
     for name, D, energy, size, col in (
             ("Key", (0.42, -0.75, 0.30), 26, 0.55, (1.00, 0.92, 0.82)),
@@ -251,6 +254,7 @@ def render_head_only():
             bpy.data.objects.remove(o, do_unlink=True)
     bpy.context.view_layer.update()
     render(os.path.join(OUTDIR, "hero_head.png"), 950, 1.0, 110)
+    ground.hide_render = False
 
 
 def render_turnaround():
@@ -269,6 +273,17 @@ def render_turnaround():
     paths = []
     for name, ang in (("front", 0), ("left", 90), ("back", 180), ("right", 270)):
         a = math.radians(ang)
+        # le luci girano con la camera: altrimenti nelle viste da dietro il
+        # personaggio resta controluce e il gonnellone diventa un blocco nero
+        clear_lights()
+        ca, sa = math.cos(a), math.sin(a)
+        for lname, D, energy, size, col in (
+                ("Key", (1.5, -2.1, 1.7), 300, 2.6, (1.00, 0.95, 0.88)),
+                ("Fill", (-2.4, -1.8, 0.9), 120, 3.6, (0.45, 0.62, 1.00)),
+                ("Top", (0.0, 0.4, 3.2), 180, 3.0, (0.80, 0.84, 1.00))):
+            Dr = (D[0] * ca - D[1] * sa, D[0] * sa + D[1] * ca, D[2])
+            add_light(lname, c + mathutils.Vector(Dr) * max(S, 0.5),
+                      energy * max(S, 0.5) ** 2, size, col, c)
         camd = bpy.data.cameras.new("Cam")
         camd.lens = 62
         cam = bpy.data.objects.new("Cam", camd)
@@ -396,17 +411,28 @@ def render_gifs(only=None):
         act = bpy.data.actions[action]
         f0, f1 = int(act.frame_range[0]), int(act.frame_range[1])
         frames = list(range(f0, f1 + 1, step))
-        pose(action, f0)
-        c, s = bbox()
+        # bbox che contiene tutta la clip: la camera non deve tagliare nulla
+        mn = mathutils.Vector((1e9, 1e9, 1e9))
+        mx = mathutils.Vector((-1e9, -1e9, -1e9))
+        for f in frames:
+            pose(action, f)
+            cc, ss = bbox()
+            mn = mathutils.Vector((min(mn.x, cc.x - ss.x / 2), min(mn.y, cc.y - ss.y / 2),
+                                   min(mn.z, cc.z - ss.z / 2)))
+            mx = mathutils.Vector((max(mx.x, cc.x + ss.x / 2), max(mx.y, cc.y + ss.y / 2),
+                                   max(mx.z, cc.z + ss.z / 2)))
+        c = (mn + mx) / 2
+        s = mx - mn
         world((0.010, 0.012, 0.018))
         clear_lights()
         lights(c, 0.95)
-        camera(c, s, azimuth=az, elevation=0.16, zoom=1.0, lens=64)
+        camera(c, s, azimuth=az, elevation=0.16, zoom=1.0, lens=60,
+               res=(420, 540), margin=1.06)
         tmp = []
         for i, f in enumerate(frames):
             pose(action, f)
             pth = os.path.join("/tmp", f"gif_{name}_{i:03d}.png")
-            render(pth, 340, 0.78, 28)
+            render(pth, 420, 540 / 420, 24)
             tmp.append(pth)
         ims = [Image.open(x).convert("RGB") for x in tmp]
         out = os.path.join(OUTDIR, f"anim_{name}.gif")

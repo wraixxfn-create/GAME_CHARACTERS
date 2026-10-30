@@ -20,7 +20,7 @@ livelli di dettaglio e QA automatica.
 | animazioni | – | **5 clip** a 30 fps: `Idle`, `Walk`, `Run`, `Cast`, `Death`, riscritte con angoli anatomici e verifica numerica automatica |
 | scala | 1,0 unita' (~1,85 m solo per caso) | **1,85 m** metrici, unita' = metro, nessuna scala da applicare all'import |
 | LOD | – | `ELFO1_LOD1.glb` (35%, 19.250 tri) e `ELFO1_LOD2.glb` (12%, 6.600 tri) |
-| file | 18,6 MB `.blend` non compresso | 3,7 MB `.blend` / 3,7 MB `.glb` / 4,8 MB `.fbx` |
+| file | 18,6 MB `.blend` non compresso | 4,4 MB `.blend` / 3,7 MB `.glb` / 4,9 MB `.fbx` (+ 2,4 e 1,8 MB di LOD) |
 | QA | – | `tools/07_validate.py` → [`QA.md`](QA.md) |
 
 ## File
@@ -74,19 +74,29 @@ Distribuzione finale dei triangoli per fascia di altezza:
 
 | mappa | risoluzione | note |
 |---|---|---|
-| baseColor | 2048² JPEG | da sorgente 4K, nessuna alterazione di colore |
-| normal (tangent space) | 2048² JPEG | ciocche, pieghe del viso, rune in rilievo |
-| ORM | 1024² JPEG | `R` = occlusione **bakeata con Cycles**, `G` = roughness, `B` = metallic |
-| emissive | 1024² JPEG | rune incandescenti su maschera ricavata dai pixel, strength 2,2 |
+| baseColor | 2048² JPEG | sorgente 4K, ombre alzate, **occhi e sopracciglia dipinti**, fodera del gonnellone riscaldata |
+| normal (tangent space) | 2048² JPEG | ciocche, pieghe del viso, rune in rilievo, strength 0,9 |
+| ORM | 1024² JPEG | `R` = occlusione **bakeata con Cycles** (2048² @ 32 spp, poi ridotta), `G` = roughness, `B` = metallic |
+| emissive | 1024² JPEG | rune incandescenti su maschera ricavata dai pixel (0,10% della UV), strength 1,05, iridi esclusi |
 
 L'occlusione e' collegata anche al nodo `glTF Material Output`: e' quello che
 l'exporter usa per scrivere `occlusionTexture`, senza resterebbe dentro il
 `.blend` e fuori dal `.glb`.
 
 Il materiale e' **double-sided** (`doubleSided: true`): il gonnellone e le
-ciocche sono fogli aperti, non solidi. I render di anteprima ribaltano la
-normale sulle facce posteriori, cosi' la fodera interna del tessuto non si vede
-nera.
+ciocche sono fogli aperti, non solidi. Nei render di anteprima non serve nessun
+nodo di correzione: Cycles (come i motori che leggono `doubleSided`) gira gia'
+la normale sulle facce posteriori. La v2 ribaltava la normale una seconda volta
+per conto suo e la fodera interna del gonnellone finiva per essere illuminata
+*al contrario*: erano le macchie nere che si vedevano sul tessuto.
+
+**Il viso e' dipinto a mano nella basecolor.** Il modello sorgente ha il viso
+liscio e senza occhi: `04_material.py` ricostruisce la posizione 3D di ogni
+texel (rasterizzazione baricentrica delle UV) e dipinge sulle coordinate del
+modello gia' scalato in metri: occhio a mandorla con iride marrone, pupilla,
+riflesso e ombra della palpebra, sopracciglia sfumate, ombra sotto il naso. Solo
+la zona del viso viene toccata (2.900 texel), e le iridi sono escluse dalla
+maschera emissiva perche' le rune si accendono anche sul collo.
 
 **Rig** — 43 ossa (42 deformanti):
 
@@ -107,14 +117,17 @@ seed per osso, multi-source Dijkstra sul grafo degli edge, peso `1/d⁴`, smooth
 laplaciano (6 iterazioni). Su un personaggio vestito fa la differenza: il
 gonnellone e' a pochi centimetri dalle cosce ma **lontano sulla superficie**
 (bisogna risalire fino alla vita), quindi la stoffa la prendono le ossa della
-gonna e le gambe muovono solo cio' che toccano davvero.
+gonna e le gambe muovono solo cio' che toccano davvero. Le ossa delle gambe
+hanno in piu' un limite geometrico: pesano solo entro 17 cm dall'asse
+dell'osso, altrimenti un lembo di stoffa che pende davanti al ginocchio si
+attacca allo stinco e in corsa si allunga in una scheggia.
 
 **Animazioni** (30 fps):
 
 | azione | frame | durata | loop | note |
 |---|---|---|---|---|
 | `ELFO1_Idle` | 0–120 | 4,00 s | si | respiro a 2 cicli, trasferimento di peso, testa che si guarda intorno, ciocche e falde in ritardo |
-| `ELFO1_Walk` | 0–36 | 1,20 s | si | ciclo del passo **in place**: heel-toe roll, ginocchia flesse solo in oscillazione (~60°), braccia in opposizione alle gambe, contatto piede-terra verificato al 100% dei frame |
+| `ELFO1_Walk` | 0–36 | 1,20 s | si | ciclo del passo **in place** (~1,15 m/s, passo 0,68 m): heel-toe roll, ginocchia flesse solo in oscillazione (~60°), braccia in opposizione alle gambe, contatto piede-terra verificato al 100% dei frame |
 | `ELFO1_Run` | 0–24 | 0,80 s | si | falcata lunga, **fase di volo**, busto inclinato in avanti (~18°), gomiti a ~90°, appoggio sull'avampiede |
 | `ELFO1_Cast` | 0–72 | 2,40 s | no | raccolta bassa, apertura larga delle braccia, **spinta dei palmi in avanti** (misurata: mani oltre 40 cm davanti al petto), passo, rientro |
 | `ELFO1_Death` | 0–90 | 3,00 s | no | colpo, ginocchia che cedono, caduta all'indietro **appoggiata al pavimento**, assestamento |

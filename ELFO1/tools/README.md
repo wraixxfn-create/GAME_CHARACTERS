@@ -44,12 +44,44 @@ lenta (Cycles CPU, ~15 minuti a 1000 px).
 | `01_optimize.py` | sgancia la mesh dagli empty di ImageToStl, applica le trasformazioni, calcola un **peso di dettaglio per vertice** (curvatura + boost su viso, capelli, mani, piedi, tessuto) e decima a 55k con `DECIMATE` e **simmetria X**. Pulisce i duplicati e ricalcola le normali pesate. |
 | `02_rig.py` | 43 ossa (vedi `skeleton.py`) e **skinning geodesico**: semi per osso sulla superficie, multi-source Dijkstra sullo scheletro di edge (scipy), peso `1/d^4`, smoothing laplaciano, 4 influenze. Maschere anatomiche per capelli e gonnellone. |
 | `03_animate.py` | 5 clip a 30 fps in **angoli anatomici** (character frame) con composizione esatta della catena dei genitori, quaternioni con continuita' di segno, tutti i canali keyati in ogni clip, caduta della `Death` appoggiata al pavimento con una misura della mesh in posa. Include un'**autoverifica numerica** (direzione del ginocchio, contatto dei piedi, direzione della spinta del `Cast`, appoggio finale della `Death`) e scrive `anim_report.json` per lo step 7. |
-| `04_material.py` | basecolor e normal a 2048, ORM a 1024 con **AO bakeata** nel rosso, emissive 1024 ricavata dalle rune dipinte nella basecolor. Materiale double-sided. |
+| `04_material.py` | basecolor e normal a 2048, ORM a 1024 con **AO bakeata** nel rosso, emissive 1024 ricavata dalle rune dipinte nella basecolor. Nella basecolor alza le ombre, riscalda la fodera scura del gonnellone e **dipinge occhi e sopracciglia** sulla posizione 3D dei texel. Materiale double-sided. |
 | `05_export.py` | scala metrica a **1,85 m** (mesh, ossa e keyframe), rinomina le azioni `ELFO1_*`, export `.blend` compresso, `.glb` con le 5 clip, `.fbx` con 5 take, LOD1 (35%) e LOD2 (12%). |
-| `06_preview.py` | hero shot della posa di lancio, ritratto, turnaround a 4 viste, confronto sorgente/LOD0, GIF delle 5 animazioni. |
+| `06_preview.py` | hero shot della posa di lancio, ritratto, turnaround a 4 viste, confronto sorgente/LOD0, GIF 420x540 delle 5 animazioni (inquadratura calcolata sul bounding box di tutta la clip, cosi' nessuna posa esce dal fotogramma). |
 | `07_validate.py` | legge i `.glb` senza Blender: triangoli, joint, influenze, durate, chiusura dei loop, canali PBR, dimensioni texture, altezza. Scrive `ELFO1/QA.md` ed esce con errore se qualcosa non torna. |
 
 ## Dettagli che vale la pena conoscere
+
+**Il tessuto non deve appendere alle gambe.** La gonna passa a tre centimetri
+dalle ginocchia: con la sola distanza geodesica (che corre lungo la superficie
+del gonnellone) l'orlo risultava "vicino" allo stinco e prendeva fino al 100% di
+peso da `thigh`/`shin`. Nella camminata quei vertici restavano indietro e la
+stoffa si allungava in schegge lunghe mezzo metro. Le ossa delle gambe ora
+pesano solo entro 17 cm dall'asse dell'osso (distanza euclidea) e i pochi
+vertici che si discostavano dalla media dei vicini vengono riportati a quella
+media. Lunghezza massima di un edge in posa: era 10x il riposo, ora 2x.
+
+**La falcata deve stare dentro la gamba.** Con una semi-falcata di 0,26 unita'
+contro un arto di 0,37 il bacino doveva scendere di 10 cm a ogni appoggio: il
+"walk" sembrava un affondo. La semi-falcata e' 0,185 (passo 0,68 m) e il
+ginocchio resta quasi disteso in appoggio.
+
+**Le macchie nere sul gonnellone non erano texture.** Nella v2 la fodera
+interna del tessuto veniva fuori nera in tutti i render. Non erano buchi
+(rendendo la mesh in emissione bianca su fondo ciano la silhouette era piena),
+non erano texel neri (nella basecolor nessun texel sotto 0,20 di luminanza) e
+non erano facce con la normale invertita. Era il nodo che *ribaltava* la
+normale sulle facce posteriori: Cycles la gira gia' da solo, il secondo
+ribaltamento la mandava dentro la superficie e la fodera non prendeva piu' luce.
+Togliendo quel nodo il gonnellone si e' schiarito senza toccare ne' la texture
+ne' le luci.
+
+**L'inquadratura si calcola dalla sfera che contiene il personaggio.** La
+versione precedente stimava il campo visivo sull'altezza e tagliava il viso nei
+primi piani e i piedi nelle pose distese. Ora `camera()` prende centro e
+dimensione della posa, costruisce la sfera che la contiene e sceglie il fuoco
+piu' stretto fra orizzontale e verticale in base all'aspect ratio. Le GIF usano
+il bounding box di **tutta** la clip: la camera non insegue il personaggio
+frame per frame.
 
 **La decimation di Blender ha i pesi al contrario.** Nel modificatore
 `DECIMATE` il peso 1 autorizza a togliere facce e il peso 0 le conserva: al

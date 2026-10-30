@@ -36,7 +36,8 @@ versione (80k adattivi): `BOSS1/preview/detail_compare.png`.
   frame), `ELFO1_Run` (loop, con fase di volo), `ELFO1_Cast` (spinta in
   avanti), `ELFO1_Death` (caduta appoggiata al pavimento)
 - materiale PBR glTF-safe double-sided: basecolor e normal 2K, ORM con **AO
-  bakeata**, **rune emissive** ricavate dai simboli dipinti
+  bakeata**, **rune emissive** ricavate dai simboli dipinti, **occhi e
+  sopracciglia dipinti** sulla basecolor (il sorgente aveva il viso liscio)
 - scala metrica reale (**1,85 m**), export Y-up, LOD1 (19,2k) e LOD2 (6,6k)
 - QA automatica dei file esportati in [`ELFO1/QA.md`](ELFO1/QA.md)
 - pipeline riproducibile in `ELFO1/tools/`
