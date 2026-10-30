@@ -5,6 +5,7 @@ Modelli di personaggi per videogiochi, lavorati per essere pronti al motore.
 | personaggio | stato | file |
 |---|---|---|
 | **BOSS1** — Demone Cornuto | game-ready: 80k tri, rig 34 ossa, 5 animazioni, PBR 2K + AO, LOD1/LOD2, scala 2,90 m | [BOSS1/](BOSS1/) → `BOSS1.blend`, `BOSS1.glb`, `BOSS1.fbx`, `BOSS1_LOD1.glb`, `BOSS1_LOD2.glb` |
+| **ELFO1** — Elfo Runico | game-ready: 55k tri, rig 43 ossa, 5 animazioni, PBR 2K + AO + rune emissive, LOD1/LOD2, scala 1,85 m | [ELFO1/](ELFO1/) → `ELFO1.blend`, `ELFO1.glb`, `ELFO1.fbx`, `ELFO1_LOD1.glb`, `ELFO1_LOD2.glb` |
 
 ## BOSS1 in breve
 
@@ -23,3 +24,22 @@ Modelli di personaggi per videogiochi, lavorati per essere pronti al motore.
 
 Confronto della densita' di triangoli tra la v1 (60k uniformi) e questa
 versione (80k adattivi): `BOSS1/preview/detail_compare.png`.
+
+## ELFO1 in breve
+
+- 339.022 → **55.000** triangoli, densita' adattiva su viso, orecchie a punta,
+  ciocche e falde del gonnellone, simmetria X; UV originali intatte
+- scheletro **43 ossa** (corpo + due catene di ciocche, cresta e otto ossa di
+  gonnellone) con skinning geodesico e maschere anatomiche, max 4 influenze
+- 5 clip a 30 fps: `ELFO1_Idle`, `ELFO1_Walk` (loop), `ELFO1_Run` (loop),
+  `ELFO1_Cast`, `ELFO1_Death` (caduta appoggiata al pavimento)
+- materiale PBR glTF-safe double-sided: basecolor e normal 2K, ORM con **AO
+  bakeata**, **rune emissive** ricavate dai simboli dipinti
+- scala metrica reale (**1,85 m**), export Y-up, LOD1 (19,2k) e LOD2 (6,6k)
+- QA automatica dei file esportati in [`ELFO1/QA.md`](ELFO1/QA.md)
+- pipeline riproducibile in `ELFO1/tools/`
+
+![ELFO1](ELFO1/preview/hero_cast.png)
+
+Confronto tra il sorgente da 339k triangoli e il LOD0 da 55k sullo stesso primo
+piano: `ELFO1/preview/detail_compare.png`.
