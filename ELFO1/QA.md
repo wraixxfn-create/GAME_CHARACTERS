@@ -26,5 +26,5 @@ Generato da `tools/07_validate.py`.
 - [x] `Cast`: nessun piede sotto il pavimento (scarto max 0.0 mm)
 - [x] `Death`: nessun piede sotto il pavimento (scarto max 0.0 mm)
 - [x] `Cast`: alla spinta le mani sono davanti al petto (mani y=-0.3878 vs petto y=-0.1229)
-- [x] `Death`: corpo appoggiato a terra (testa a 0.1649 m, minimo finale 0.0 m)
+- [x] `Death`: corpo appoggiato a terra (testa a 0.1656 m, minimo finale 0.0 m)
 - [x] tutti i check interni di `03_animate.py` superati

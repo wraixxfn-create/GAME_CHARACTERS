@@ -29,6 +29,7 @@ python3 03_animate.py     # Idle / Walk / Run / Cast / Death
 python3 04_material.py    # texture 2K + AO bakeata + ORM + rune emissive
 python3 05_export.py      # ELFO1.blend/.glb/.fbx + LOD1/LOD2, scala 1,85 m
 python3 06_preview.py     # render di presentazione e GIF (facoltativo, lento)
+ELFO1_ONLY_GIF=death python3 06_preview.py --gif-only    # rifa' una sola clip
 python3 07_validate.py    # QA dei file esportati -> ELFO1/QA.md
 ```
 

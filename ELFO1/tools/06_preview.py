@@ -451,7 +451,10 @@ elif DO_STILLS:
     render_stills()
     render_turnaround()
 if DO_GIF and not ONLY_TURN:
-    render_gifs()
+    # ELFO1_ONLY_GIF=death rifa' solo quella clip (comodo quando si tocca
+    # un'animazione sola senza rifare 15 minuti di render)
+    only = [x.strip() for x in os.environ.get("ELFO1_ONLY_GIF", "").split(",") if x.strip()]
+    render_gifs(only or None)
 if DO_STILLS and not ONLY_TURN:
     render_detail_compare()      # per ultima: riapre i .blend da zero
 
