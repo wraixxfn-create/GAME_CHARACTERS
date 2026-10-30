@@ -379,16 +379,18 @@ def render_detail_compare():
 
 
 # ------------------------------------------------------------------- GIF -----
-CLIPS = [("idle", "ELFO1_Idle", 5),
-         ("walk", "ELFO1_Walk", 3),
-         ("run", "ELFO1_Run", 2),
-         ("cast", "ELFO1_Cast", 4),
-         ("death", "ELFO1_Death", 4)]
+# (nome, azione, step frame, azimut camera): walk/run quasi di lato, dove la
+# falcata si legge; idle/cast/death a tre quarti
+CLIPS = [("idle", "ELFO1_Idle", 5, 34),
+         ("walk", "ELFO1_Walk", 3, 64),
+         ("run", "ELFO1_Run", 2, 64),
+         ("cast", "ELFO1_Cast", 4, 36),
+         ("death", "ELFO1_Death", 4, 42)]
 
 
 def render_gifs(only=None):
     from PIL import Image
-    for name, action, step in CLIPS:
+    for name, action, step, az in CLIPS:
         if only and name not in only:
             continue
         act = bpy.data.actions[action]
@@ -399,7 +401,7 @@ def render_gifs(only=None):
         world((0.010, 0.012, 0.018))
         clear_lights()
         lights(c, 0.95)
-        camera(c, s, azimuth=34, elevation=0.18, zoom=1.0, lens=64)
+        camera(c, s, azimuth=az, elevation=0.16, zoom=1.0, lens=64)
         tmp = []
         for i, f in enumerate(frames):
             pose(action, f)

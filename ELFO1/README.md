@@ -17,7 +17,7 @@ livelli di dettaglio e QA automatica.
 | vertici | 168.853 | 26.842 (40.408 nello `.glb`, dopo lo split delle UV) |
 | materiale | basecolor + RM + normal, nessuna occlusione | **PBR glTF-safe**: basecolor 2048, normal 2048, ORM 1024 con **AO bakeata**, emissive 1024 con le **rune accese** |
 | scheletro | – | **43 ossa** (42 deformanti), max 4 influenze per vertice, skinning **geodesico** |
-| animazioni | – | **5 clip** a 30 fps: `Idle`, `Walk`, `Run`, `Cast`, `Death` |
+| animazioni | – | **5 clip** a 30 fps: `Idle`, `Walk`, `Run`, `Cast`, `Death`, riscritte con angoli anatomici e verifica numerica automatica |
 | scala | 1,0 unita' (~1,85 m solo per caso) | **1,85 m** metrici, unita' = metro, nessuna scala da applicare all'import |
 | LOD | – | `ELFO1_LOD1.glb` (35%, 19.250 tri) e `ELFO1_LOD2.glb` (12%, 6.600 tri) |
 | file | 18,6 MB `.blend` non compresso | 3,7 MB `.blend` / 3,7 MB `.glb` / 4,8 MB `.fbx` |
@@ -114,22 +114,35 @@ gonna e le gambe muovono solo cio' che toccano davvero.
 | azione | frame | durata | loop | note |
 |---|---|---|---|---|
 | `ELFO1_Idle` | 0–120 | 4,00 s | si | respiro a 2 cicli, trasferimento di peso, testa che si guarda intorno, ciocche e falde in ritardo |
-| `ELFO1_Walk` | 0–36 | 1,20 s | si | passo umano **in place** (root motion a carico del motore), doppio bob, contro-rotazione del busto, braccia in opposizione |
-| `ELFO1_Run` | 0–24 | 0,80 s | si | falcata lunga, busto inclinato in avanti, braccia a 90° che pompano |
-| `ELFO1_Cast` | 0–72 | 2,40 s | no | raccolta dell'energia, apertura delle braccia, spinta dei palmi, rientro |
-| `ELFO1_Death` | 0–90 | 3,00 s | no | colpo, ginocchia che cedono, caduta all'indietro, assestamento a terra |
+| `ELFO1_Walk` | 0–36 | 1,20 s | si | ciclo del passo **in place**: heel-toe roll, ginocchia flesse solo in oscillazione (~60°), braccia in opposizione alle gambe, contatto piede-terra verificato al 100% dei frame |
+| `ELFO1_Run` | 0–24 | 0,80 s | si | falcata lunga, **fase di volo**, busto inclinato in avanti (~18°), gomiti a ~90°, appoggio sull'avampiede |
+| `ELFO1_Cast` | 0–72 | 2,40 s | no | raccolta bassa, apertura larga delle braccia, **spinta dei palmi in avanti** (misurata: mani oltre 40 cm davanti al petto), passo, rientro |
+| `ELFO1_Death` | 0–90 | 3,00 s | no | colpo, ginocchia che cedono, caduta all'indietro **appoggiata al pavimento**, assestamento |
 
-Le rotazioni sono definite in **assi mondo** (`X` = beccheggio, `Y` = rollio,
-`Z` = imbardata) e convertite nello spazio della singola osso:
-`Q = M_rest⁻¹ · R_mondo · M_rest`. I keyframe usano quaternioni con continuita'
-di segno e ogni clip definisce **tutte** le ossa: non ci sono canali "ereditati"
-da un'azione precedente.
+Le pose si definiscono con **angoli anatomici** nel character frame
+(altezza-giu' = avanti le gambe, flessione ginocchio = tallone indietro, ecc.)
+convertiti in quaternioni con composizione esatta della catena:
 
-I cicli (`Idle`, `Walk`, `Run`) sono generati campionando una funzione di fase,
-quindi il primo e l'ultimo frame coincidono per costruzione: il loop e' chiuso
-senza aggiustamenti a mano. Nella `Death` il `root` ruota e trasla, e ogni
-frame chiave viene appoggiato al pavimento misurando il punto piu' basso della
-mesh in posa.
+```
+D_eff(b) = Delta_b @ D_eff(parent)
+B(b)     = Rest(b)^-1 @ D_eff(parent)^-1 @ D_eff(b) @ Rest(b)
+```
+
+> La v1 usava `B = M_rest⁻¹ · R · M_rest` con un'unica convenzione di segno per
+> tutte le ossa: le rotazioni dei genitori non venivano composte e "avanti" per
+> le ossa che puntano in giu' era in realta' "indietro". Risultato: ginocchia
+> che si piegavano in avanti, spinta del `Cast` dietro la schiena, `Death` con
+> le gambe sopra la testa e il corpo sospeso in aria. Ora ogni clip passa un
+> controllo numerico in `03_animate.py` (direzione del ginocchio, contatto dei
+> piedi, direzione della spinta, posa finale a terra) che scrive
+> `$ELFO1_WORK/anim_report.json`, incorporato nel [QA](QA.md).
+
+I keyframe usano quaternioni con continuita' di segno e ogni clip definisce
+**tutte** le ossa: non ci sono canali "ereditati" da un'azione precedente.
+I cicli (`Idle`, `Walk`, `Run`) campionano funzioni di fase continue: primo e
+ultimo frame identici per costruzione, loop chiuso senza aggiustamenti a mano.
+Nella `Death` il `root` ruota e trasla, e ogni frame chiave dal contatto in poi
+viene appoggiato al pavimento misurando il punto piu' basso della mesh in posa.
 
 ## Come e' stato fatto
 
@@ -138,8 +151,10 @@ mesh in posa.
    55k, pulizia, normali pesate.
 2. **Rig e skinning** — armatura da 43 ossa costruita su landmark anatomici,
    poi skinning geodesico con maschere per capelli e gonnellone.
-3. **Animazione** — pose chiave in assi mondo, quaternioni, Bezier
-   auto-clamped, cicli chiusi per costruzione, caduta appoggiata al suolo.
+3. **Animazione** — pose chiave in angoli anatomici (character frame) con
+   composizione esatta della catena, quaternioni con continuita' di segno,
+   Bezier auto-clamped, cicli chiusi per costruzione, caduta appoggiata al
+   suolo, autoverifica numerica di ogni clip.
 4. **Materiale** — downscale selettivo, bake AO su Cycles, ORM impacchettato,
    emissive generata dalle rune dipinte.
 5. **Export** — scala a 1,85 m coerente tra mesh, ossa e traslazioni, poi
