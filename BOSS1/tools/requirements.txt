@@ -1,0 +1,5 @@
+# Pipeline BOSS1 - dipendenze Python
+bpy==5.0.1
+numpy>=1.24
+scipy>=1.10
+pillow>=10.0
