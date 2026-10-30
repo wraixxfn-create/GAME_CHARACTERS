@@ -31,8 +31,10 @@ versione (80k adattivi): `BOSS1/preview/detail_compare.png`.
   ciocche e falde del gonnellone, simmetria X; UV originali intatte
 - scheletro **43 ossa** (corpo + due catene di ciocche, cresta e otto ossa di
   gonnellone) con skinning geodesico e maschere anatomiche, max 4 influenze
-- 5 clip a 30 fps: `ELFO1_Idle`, `ELFO1_Walk` (loop), `ELFO1_Run` (loop),
-  `ELFO1_Cast`, `ELFO1_Death` (caduta appoggiata al pavimento)
+- 5 clip a 30 fps riscritte con angoli anatomici e **verifica numerica**
+  automatica: `ELFO1_Idle`, `ELFO1_Walk` (loop, contatto dei piedi su ogni
+  frame), `ELFO1_Run` (loop, con fase di volo), `ELFO1_Cast` (spinta in
+  avanti), `ELFO1_Death` (caduta appoggiata al pavimento)
 - materiale PBR glTF-safe double-sided: basecolor e normal 2K, ORM con **AO
   bakeata**, **rune emissive** ricavate dai simboli dipinti
 - scala metrica reale (**1,85 m**), export Y-up, LOD1 (19,2k) e LOD2 (6,6k)

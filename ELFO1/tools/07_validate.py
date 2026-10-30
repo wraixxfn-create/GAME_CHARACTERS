@@ -23,6 +23,7 @@ import numpy as np
 
 HERE = sys.argv[1] if len(sys.argv) > 1 else \
     os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+WORK = os.environ.get("ELFO1_WORK", "/home/user/work/elfo")
 FILES = ["ELFO1.glb", "ELFO1_LOD1.glb", "ELFO1_LOD2.glb"]
 LOOPING = ("Idle", "Walk", "Run")
 CHANNELS = {5120: ('b', 1), 5121: ('B', 1), 5122: ('h', 2), 5123: ('H', 2),
@@ -223,6 +224,37 @@ def main():
               "- [x] baseColor + metallicRoughness + occlusion + normal + emissive",
               "- [x] materiale double-sided (gonnellone e ciocche sono fogli aperti)",
               ""]
+
+    # metriche numeriche delle animazioni, scritte da 03_animate.py
+    anim_json = os.path.join(WORK, "anim_report.json")
+    if os.path.exists(anim_json):
+        ar = json.load(open(anim_json))
+        lines += ["## Sanita' delle animazioni (misurata da `03_animate.py`)",
+                  ""]
+        kd = ar.get("knee_direction_ok")
+        lines.append(
+            f"- [{'x' if kd else ' '}] direzione del ginocchio: in flessione il "
+            f"tallone va *dietro* (niente 'passo dell'oca')")
+        for key, clip, note in (("foot_contact_walk", "Walk", "ogni frame"),
+                                ("foot_contact_run", "Run", ">= meta' frame (volo)")):
+            vals = ar.get(key) or []
+            if vals:
+                grounded = sum(v <= 0.06 for v in vals) / len(vals)
+                lines.append(
+                    f"- [{'x' if grounded >= 0.5 else ' '}] `{clip}`: contatto "
+                    f"piede-terra su {grounded:.0%} dei frame campionati ({note})")
+        cp = ar.get("cast_push_forward_ok")
+        lines.append(
+            f"- [{'x' if cp else ' '}] `Cast`: al frame della spinta le mani sono "
+            f"davanti al petto (non dietro la schiena)")
+        hz = ar.get("death_head_rest_z")
+        grounded_pts = ar.get("death_grounded") or []
+        if hz is not None:
+            lines.append(
+                f"- [{'x' if hz < 0.22 else ' '}] `Death`: posa finale appoggiata "
+                f"a terra (testa a {hz:.2f} unita' sorgente, grounding su "
+                f"{len(grounded_pts)} frame chiave)")
+        lines.append("")
     if all_errs:
         lines += ["## Problemi", ""] + [f"- {e}" for e in all_errs] + [""]
     out = os.path.join(HERE, "QA.md")
