@@ -4,9 +4,9 @@ Generato da `tools/07_validate.py`.
 
 | file | tris | verts | joint | clip | durate | MB | doubleSided | esito |
 |---|---|---|---|---|---|---|---|---|
-| `ELFO1.glb` | 55000 | 40408 | 43 | 5 | 2.40s, 3.00s, 4.00s, 0.80s, 1.20s | 3.75 | si | OK |
-| `ELFO1_LOD1.glb` | 19250 | 18610 | 43 | 5 | 2.40s, 3.00s, 4.00s, 0.80s, 1.20s | 2.40 | si | OK |
-| `ELFO1_LOD2.glb` | 6600 | 8678 | 43 | 5 | 2.40s, 3.00s, 4.00s, 0.80s, 1.20s | 1.81 | si | OK |
+| `ELFO1.glb` | 55000 | 40408 | 43 | 5 | 2.40s, 3.00s, 4.00s, 0.80s, 1.20s | 3.70 | si | OK |
+| `ELFO1_LOD1.glb` | 19250 | 18610 | 43 | 5 | 2.40s, 3.00s, 4.00s, 0.80s, 1.20s | 2.35 | si | OK |
+| `ELFO1_LOD2.glb` | 6600 | 8678 | 43 | 5 | 2.40s, 3.00s, 4.00s, 0.80s, 1.20s | 1.76 | si | OK |
 
 ## Controlli
 
@@ -19,8 +19,12 @@ Generato da `tools/07_validate.py`.
 
 ## Sanita' delle animazioni (misurata da `03_animate.py`)
 
-- [x] direzione del ginocchio: in flessione il tallone va *dietro* (niente 'passo dell'oca')
-- [x] `Walk`: contatto piede-terra su 100% dei frame campionati (ogni frame)
-- [x] `Run`: contatto piede-terra su 50% dei frame campionati (>= meta' frame (volo))
-- [x] `Cast`: al frame della spinta le mani sono davanti al petto (non dietro la schiena)
-- [x] `Death`: posa finale appoggiata a terra (testa a 0.22 unita' sorgente, grounding su 5 frame chiave)
+- [x] ginocchia: in flessione il tallone va *dietro* (niente passo dell'oca)
+- [x] `Walk`: appoggio a terra sul 100% dei frame, scarto verticale max 0.0 mm
+- [x] `Run`: appoggio sul 100% dei frame di stance, volo di 14.1 cm
+- [x] `Idle`: nessun piede sotto il pavimento (scarto max 0.0 mm)
+- [x] `Cast`: nessun piede sotto il pavimento (scarto max 0.0 mm)
+- [x] `Death`: nessun piede sotto il pavimento (scarto max 0.0 mm)
+- [x] `Cast`: alla spinta le mani sono davanti al petto (mani y=-0.3878 vs petto y=-0.1229)
+- [x] `Death`: corpo appoggiato a terra (testa a 0.1656 m, minimo finale 0.0 m)
+- [x] tutti i check interni di `03_animate.py` superati

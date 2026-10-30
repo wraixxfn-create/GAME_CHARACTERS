@@ -160,10 +160,22 @@ eps = 1e-4
 # della cintura) il vertice resta senza nessuna influenza e, nella posa, si
 # pianta a terra mentre il resto del corpo si muove (le "schegge" bianche).
 BONE_MASK = np.ones((nv, len(deform)), dtype=bool)
+LEG_BONES = ("thigh", "shin", "foot", "toe")
+LEG_REACH = 0.090          # ~17 cm sul modello finale: raggio della gamba + margine
 for bi, name in enumerate(deform):
     im = INFLUENCE_MASK.get(name)
     if im is not None:
         BONE_MASK[:, bi] = im
+    if name.split('.')[0] in LEG_BONES:
+        # Le gambe pesano solo sui vertici *vicini in linea d'aria*. Il tessuto
+        # che pende davanti al ginocchio e' a 3 cm dalla pelle ma a 30 cm
+        # dall'asse dello stinco: con la sola distanza geodesica (che corre
+        # lungo la superficie del gonnellone) risultava attaccato alla gamba e
+        # nella camminata si allungava in schegge.
+        a, b = POS[name]
+        eucl = point_segment_distance(co, a, b)
+        BONE_MASK[:, bi] &= eucl < LEG_REACH
+        print(f"[skin] {name}: raggiunge {int((eucl < LEG_REACH).sum())} vertici")
 Da = np.where(BONE_MASK, D, np.inf)
 dmin = Da.min(axis=1, keepdims=True)
 mask = Da <= np.maximum(2.5 * dmin, dmin + 0.03)
@@ -192,6 +204,40 @@ for _ in range(6):
     W = 0.45 * W + 0.55 * (A @ W)
     W = np.where(BONE_MASK, W, 0.0)
     W /= np.maximum(W.sum(axis=1, keepdims=True), 1e-12)
+
+# ---------------------------------------------- vertici "fuori dal coro" -----
+# Un vertice isolato che pesa su un osso diverso da tutti i vicini, nella posa
+# si stacca e si porta dietro una scheggia lunga decine di centimetri. Dove il
+# peso e' molto diverso dalla media dei vicini si sostituisce con quella media.
+for _ in range(3):
+    Wn = A @ W
+    diff = np.abs(W - Wn).sum(axis=1)
+    odd = diff > 0.45
+    if not odd.any():
+        break
+    W[odd] = Wn[odd]
+    W /= np.maximum(W.sum(axis=1, keepdims=True), 1e-12)
+    print(f"[skin] vertici fuori dal coro corretti: {int(odd.sum())}")
+
+# ------------------------------------------------- gonnellone: gambe fuori ---
+# Il tessuto passa a pochi centimetri dalle gambe: con la sola distanza
+# geodesica qualche vertice dell'orlo finiva per un quarto su thigh/shin e
+# nella camminata la stoffa si stirava in schegge lunghe decine di centimetri.
+# Sui vertici che sono gia' del gonnellone le ossa della gamba si azzerano: la
+# stoffa la muovono solo le ossa skirt_*, che le animazioni accompagnano alle
+# gambe.
+LEGS = [i for i, n in enumerate(deform)
+        if n.split('.')[0] in ("thigh", "shin", "foot", "toe")]
+SKIRT = [i for i, n in enumerate(deform) if n.startswith("skirt")]
+if False and LEGS and SKIRT:
+    share = W[:, SKIRT].sum(axis=1)
+    garment = share > 0.35
+    if garment.any():
+        removed = W[np.ix_(garment, LEGS)].sum(axis=1)
+        W[np.ix_(garment, LEGS)] = 0.0
+        W /= np.maximum(W.sum(axis=1, keepdims=True), 1e-12)
+        print(f"[skin] gonnellone: gambe rimosse da {int(garment.sum())} vertici "
+              f"(peso medio tolto {removed.mean():.2f}, max {removed.max():.2f})")
 
 # limite a 4 influenze + soglia
 LIMIT, MIN_W = 4, 0.01
