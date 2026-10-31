@@ -1,22 +1,22 @@
-"""DRESS1 — costruzione della geometria (v4).
+"""DRESS1 — costruzione della geometria (v5, dettagli dal concept).
 
 Il capo e' ridisegnato da zero seguendo il concept: gonna in lino avorio a pieghe
 fitte, fascia incrociata in vita con anello d'ottone, staffa scura con simboli
 geometrici dorati, scialli scuri sui fianchi con rune, caviglie fasciate e
 sandali aperti.
 
-Regola d'oro di questa versione: **ogni pezzo nasce dalla stessa superficie**
-``surface(a, z, layer)``. Cosi' lembi, scialli, cordoni e ricami restano
-appoggiati alla gonna senza compenetrarla ne' staccarsi.
+La gonna e i lembi usano la stessa superficie ``surface(a, z, layer)`` e lo
+stesso spostamento di piega. Gli scialli hanno uno strato piu' teso; staffa e
+ricami condividono la rispettiva superficie di appoggio.
 
 Quote (metri, Z in alto, davanti = -Y):
 
 ```
-z = 1.100  bordo alto della fascia (ai fianchi)
-z = 1.040  cintura scura + anello
+z = 1.090  bordo alto della fascia (ai fianchi)
+z = 1.026  cintura scura + anello
 z = 0.945  fondo della fascia
-z = 0.966  attacco della gonna
-z = 0.290  orlo medio (punte a 0.220)
+z = 0.964  attacco della gonna
+z = 0.290  orlo medio (falde piu' lunghe sotto)
 z = 0.000  pavimento
 ```
 """
@@ -39,43 +39,42 @@ from common import (TAU, cloth_grid, ensure_dir, mesh_from_pydata, reset_scene,
 # quote e profilo
 # --------------------------------------------------------------------------
 
-TOP_Z = 1.100
 SASH_BOT_Z = 0.945
 WAIST_RX = 0.152
 WAIST_RY = 0.126
 
 SKIRT_TOP_Z = 0.964
-LEG_X = 0.070
+LEG_X = 0.110
 
 # (z, rx, ry) — profilo a campana, svasatura dolce
 PROFILE = [
     (0.964, 0.152, 0.128),
     (0.900, 0.157, 0.133),
     (0.800, 0.166, 0.142),
-    (0.700, 0.177, 0.153),
-    (0.600, 0.190, 0.165),
-    (0.500, 0.203, 0.177),
-    (0.430, 0.213, 0.186),
-    (0.370, 0.221, 0.193),
-    (0.330, 0.224, 0.196),
-    (0.290, 0.222, 0.194),
-    (0.250, 0.216, 0.189),
-    (0.210, 0.207, 0.181),
-    (0.170, 0.195, 0.171),
+    (0.700, 0.179, 0.151),
+    (0.600, 0.190, 0.160),
+    (0.500, 0.202, 0.170),
+    (0.430, 0.211, 0.178),
+    (0.370, 0.220, 0.185),
+    (0.330, 0.224, 0.188),
+    (0.290, 0.225, 0.189),
+    (0.250, 0.223, 0.187),
+    (0.210, 0.219, 0.184),
+    (0.170, 0.215, 0.181),
 ]
 
 # offset di raggio per strato (m)
 LAYER = {
     "under": -0.045,
     "base": 0.000,
-    "lapB": 0.026,
-    "lap": 0.034,
-    "lap2": 0.046,
-    "lap3": 0.052,
-    "drape": 0.056,
-    "drape2": 0.062,
-    "trim": 0.068,
-    "strap": 0.074,
+    "lapB": 0.019,
+    "lap": 0.030,
+    "lap2": 0.043,
+    "lap3": 0.055,
+    "drape": 0.073,
+    "drape2": 0.085,
+    "trim": 0.091,
+    "strap": 0.082,
 }
 
 
@@ -125,11 +124,6 @@ def fbm(p, octaves=3, lac=2.0, gain=0.5):
 def wrinkle(p, amp=0.002, freq=6.0, seed=0.0):
     q = (p[0] * freq + seed, p[1] * freq - seed * 0.7, p[2] * freq * 0.5)
     return fbm(q, 3) * amp
-
-
-def sharpen(x, k):
-    """Onda -> onda a spigolo, senza discontinuita' (per pieghe 'a coltello')."""
-    return math.tanh(k * x) / math.tanh(k) if abs(math.tanh(k)) > 1e-6 else x
 
 
 def lerp_table(table, v):
@@ -386,12 +380,18 @@ def leg_radius(z, side_x):
     return x0, y0, dy0
 
 
+def leg_center_x(z):
+    # Le gambe si allargano solo sotto la gonna; ai fianchi restano all'interno
+    # della fascia anche con una posa dei piedi piu' aperta.
+    return 0.070 + (LEG_X - 0.070) * (1.0 - smoothstep(0.24, 0.90, z))
+
+
 def build_legs():
     objs = []
     for side, sx in (("L", 1.0), ("R", -1.0)):
         secs = []
         for (z, rx, ry, dy) in LEG_PROFILE:
-            cx = sx * (LEG_X + 0.004 * (1.0 - z))
+            cx = sx * (leg_center_x(z) + 0.004 * (1.0 - z))
             secs.append(((cx, dy, z), rx, ry))
         secs.sort(key=lambda s: s[0][2])
         objs.append(loft(f"Leg_{side}", secs, rings=24))
@@ -417,7 +417,7 @@ def build_feet():
     objs = []
     for side, sx in (("L", 1.0), ("R", -1.0)):
         base = Vector((sx * LEG_X, -0.014, 0.0))
-        rot = Matrix.Rotation(-math.radians(6.0) * sx, 4, "Z")
+        rot = Matrix.Rotation(math.radians(14.0) * sx, 4, "Z")
         rings = 22
         verts, faces = [], []
         for (y, hw, hz, cy) in FOOT_SECTIONS:
@@ -575,7 +575,7 @@ def build_sandals():
     objs = []
     for side, sx in (("L", 1.0), ("R", -1.0)):
         base = Vector((sx * LEG_X, -0.014, 0.0))
-        rot = Matrix.Rotation(-math.radians(6.0) * sx, 4, "Z")
+        rot = Matrix.Rotation(math.radians(14.0) * sx, 4, "Z")
 
         def P(x, y, z):
             return base + rot @ Vector((x, y, z))
@@ -649,42 +649,34 @@ def build_sandals():
 # gonna
 # --------------------------------------------------------------------------
 
-def pleats(a, v, seed=0.0, n=26, amp=1.0, sharp=1.15, hem_fade=0.0):
-    """Pieghe a coltello: onda triangolare + modulazione lenta.
+def pleats(a, v, seed=0.0, n=26, amp=1.0, hem_fade=0.0):
+    """Pieghe continue e leggermente irregolari, non un dente di sega.
 
-    ``sharp`` controlla quanto e' viva la piega, ``hem_fade`` spegne
-    gradualmente l'ampiezza negli ultimi centimetri (orlo pulito).
+    Le armoniche intere chiudono senza discontinuita' sul retro. Una piccola
+    deriva lungo la lunghezza evita che le pieghe sembrino scanalature rigide.
     """
-    def tri(x):
-        return 2.0 * abs(2.0 * ((x / TAU) % 1.0) - 1.0) - 1.0
-
-    def knife(x):
-        """Dente di sega: salita lenta, caduta ripida (piega a coltello)."""
-        t = (x / TAU) % 1.0
-        return 2.0 * (t ** 0.62) - 1.0 if t < 1.0 else 0.0
-
-    base = (0.66 * knife(a * n + seed)
-            + 0.22 * knife(a * (n * 0.5) - 0.8 + seed)
-            + 0.12 * tri(a * (n * 2.0) + 2.4))
-    base = sharpen(base, sharp)
-    mod = (0.70 + 0.30 * math.sin(a * 3.0 - 0.7 + seed)
-           * 0.5 + 0.15 * math.sin(a * 7.0 + 1.1))
-    f = base * mod * amp * smoothstep(0.0, 0.12, v)
+    n = max(2, int(n))
+    drift = 0.30 * math.sin(v * 2.4 + seed * 0.31) * smoothstep(0.05, 0.8, v)
+    phase = n * a + seed + drift
+    fold = (0.62 * math.cos(phase)
+            + 0.20 * math.cos(phase * 2.0 - 0.35)
+            + 0.18 * math.cos((n // 2) * a + 0.55 + v * 0.3))
+    envelope = 0.35 + 0.65 * smoothstep(0.0, 0.20, v)
     if hem_fade:
-        f *= 1.0 - hem_fade * smoothstep(0.90, 1.0, v)
-    return f
+        envelope *= 1.0 - hem_fade * smoothstep(0.88, 1.0, v)
+    return amp * fold * envelope
 
 
 def skirt_disp(a, z):
-    """Spostamento radiale della gonna in (a, z).
+    """Spostamento radiale della gonna, condiviso da tutti gli strati.
 
-    Le falde appoggiate sopra devono seguire la *superficie pieghettata*,
-    altrimenti le creste delle pieghe trapassano la stoffa sovrapposta.
+    Il tratto scende dall'alto all'orlo: la distanza e' positiva. Usare il
+    segno opposto azzerava le pieghe per ogni lembo e causava compenetrazioni.
     """
-    span = hem_z(a) - SKIRT_TOP_Z
-    v = 0.0 if span <= 1e-6 else min(1.0, max(0.0, (z - SKIRT_TOP_Z) / span))
-    f = pleats(a, v, 0.0, n=13, amp=0.0200, sharp=1.02, hem_fade=0.85)
-    f += 0.0028 * math.sin(a * 67.0 + v * 1.6) * smoothstep(0.05, 0.5, v)
+    span = SKIRT_TOP_Z - hem_z(a)
+    v = min(1.0, max(0.0, (SKIRT_TOP_Z - z) / max(span, 1e-6)))
+    f = pleats(a, v, 0.0, n=13, amp=0.021, hem_fade=0.25)
+    f += 0.0012 * math.sin(a * 39.0 + v * 1.6) * smoothstep(0.05, 0.5, v)
     return f
 
 
@@ -697,7 +689,7 @@ def build_underskirt():
         a = TAU * u
         z = z_top + (z_bot - z_top) * v ** 1.02
         rx, ry = radius(z, "under")
-        f = pleats(a, v, 0.4, n=9, amp=0.0030, sharp=1.0, hem_fade=1.0)
+        f = pleats(a, v, 0.4, n=9, amp=0.0030, hem_fade=1.0)
         p = surface(a, z, "under", extra=f)
         p += normal_dir(a) * wrinkle(p, 0.0006, 11.0, 1.3)
         return p
@@ -712,10 +704,8 @@ def build_skirt():
     def surf(u, v):
         a = TAU * u
         z = SKIRT_TOP_Z + (hem_z(a) - SKIRT_TOP_Z) * v ** 1.02
-        f = pleats(a, v, 0.0, n=13, amp=0.0200, sharp=1.02, hem_fade=0.85)
-        # micro pieghe sfalsate
-        f += 0.0028 * math.sin(a * 67.0 + v * 1.6) * smoothstep(0.05, 0.5, v)
-        p = surface(a, z, "base", extra=f)
+        # Anche i lembi chiamano questa funzione: bordi e creste coincidono.
+        p = surface(a, z, "base", extra=skirt_disp(a, z))
         # rumore basso: se e' troppo forte la crease della piega si
         # spezza in dentini visibili in controluce
         p += normal_dir(a) * wrinkle(p, 0.00035, 13.0, 3.1)
@@ -775,10 +765,26 @@ class Panel:
         # le pieghe si spengono verso i bordi del lembo: l'orlo laterale resta
         # una curva di stoffa, non una fila di dentini
         fade = 1.0 - edge ** 1.35
-        amp = (self.pleat_amp * (0.60 + 0.40 * smoothstep(0.0, 0.30, v))
-               * fade)
-        sd = skirt_disp(a, z) if self.layer != "under" else 0.0
-        p = surface(a, z, "base", extra=LAYER[self.layer] + sd + f * amp + extra)
+        # Le pieghe principali provengono gia' dalla gonna. Una piega locale
+        # piu' sottile aggiunge carattere senza far attraversare gli strati.
+        amp = (self.pleat_amp * 0.30 * smoothstep(0.0, 0.20, v) * fade)
+        # Gli scialli sono uno strato di lana piu' spesso e teso: seguire le
+        # pieghe strette del lino li ripiegherebbe su se stessi e nasconderebbe
+        # i ricami. Un piccolo margine li tiene sopra le creste della gonna.
+        if self.layer in {"drape", "drape2"}:
+            sd = 0.006
+        else:
+            sd = skirt_disp(a, z) if self.layer != "under" else 0.0
+        # Solchi verticali delicati, modellati nella stoffa e non dipinti.
+        # Seguono lentamente la caduta del lembo, lasciando puliti gli orli.
+        creases = 0.0
+        if self.name.startswith("Lap_"):
+            for center in (0.29, 0.70):
+                center += 0.018 * math.sin(v * 3.0 + self.seed)
+                creases -= (0.0035 * math.exp(-((u - center) / 0.035) ** 2)
+                            * smoothstep(0.03, 0.18, v) * fade)
+        p = surface(a, z, "base", extra=LAYER[self.layer] + sd + f * amp
+                    + creases + extra)
         if self.blend_top:
             # in cima il lembo si appoggia sulla gonna invece di sporgere...
             # ma resta 2 mm sopra la superficie pieghettata: se ci finisse
@@ -793,19 +799,18 @@ class Panel:
         return p
 
     def nrm(self, u, v):
+        # Differenze centrate anche sui bordi: una derivata zero faceva girare
+        # i ricami all'estremita' delle falde.
         du, dv = 1e-3, 1e-3
-        p0 = self.pt(u, v)
-        pu = self.pt(min(u + du, 1.0), v)
-        pv = self.pt(u, min(v + dv, 1.0))
-        n = (pu - p0).cross(pv - p0)
+        pu = self.pt(min(u + du, 1.0), v) - self.pt(max(u - du, 0.0), v)
+        pv = self.pt(u, min(v + dv, 1.0)) - self.pt(u, max(v - dv, 0.0))
+        n = pu.cross(pv)
+        a, _, _ = self.params(u, v)
         if n.length < 1e-9:
-            a, _, _ = self.params(u, v)
             return normal_dir(a)
         n.normalize()
-        a, _, _ = self.params(u, v)
-        if n.dot(normal_dir(a)) < 0:
-            n = -n
-        return n
+        return -n if n.dot(normal_dir(a)) < 0 else n
+
 
     def build(self, nu=130, nv=58, thickness=0.0035):
         return cloth_grid(self.name, nu, nv, lambda u, v: self.pt(u, v),
@@ -823,70 +828,46 @@ def panel(name, ang_table, z_table, layer, width_table=None, tip=0.0,
 
 
 def build_lappets():
-    """Falde sovrapposte: la lettura a strati del concept."""
-    objs = []
+    """Lembi sovrapposti, con punte sfalsate e libere come nel disegno."""
     R = math.radians
-
-    # grande falda frontale sinistra che scavalca il centro e finisce a punta
-    objs.append(panel(
-        "Lap_FrontL",
-        [(0.0, R(-30)), (1.0, R(22))],
-        [(0.0, SKIRT_TOP_Z + 0.002), (0.55, 0.335), (1.0, 0.272)],
-        "lap", width_table=[(0.0, R(70)), (0.5, R(74)), (1.0, R(78))],
-        tip=0.115, tip_pow=1.45, seed=0.4, nu=150, nv=64,
-        pleat_n=13, pleat_amp=0.0190, corner_lift=0.060, edge_tuck=0.004,
-        blend_top=1.0))
-    # falda destra, piu' corta, con orlo a punta piu' bassa sul fianco
-    objs.append(panel(
-        "Lap_FrontR",
-        [(0.0, R(24)), (1.0, R(8))],
-        [(0.0, SKIRT_TOP_Z + 0.001), (0.6, 0.372), (1.0, 0.300)],
-        "lapB", width_table=[(0.0, R(58)), (1.0, R(66))],
-        tip=0.085, tip_pow=1.6, seed=2.1, nu=130, nv=58,
-        pleat_n=13, pleat_amp=0.0180, corner_lift=0.050, edge_tuck=0.004,
-        blend_top=1.0))
-    # falda laterale sinistra, molto lunga e stretta (asimmetria del concept)
-    objs.append(panel(
-        "Lap_SideL",
-        [(0.0, R(52)), (1.0, R(38))],
-        [(0.0, SKIRT_TOP_Z + 0.004), (0.6, 0.300), (1.0, 0.155)],
-        "lap2", width_table=[(0.0, R(40)), (1.0, R(30))],
-        tip=0.055, tip_pow=1.7, seed=3.7, nu=96, nv=76,
-        pleat_n=9, pleat_amp=0.015, edge_tuck=0.0, corner_lift=0.030,
-        blend_top=1.0, top_taper=0.45))
-    # falda laterale destra piu' corta
-    objs.append(panel(
-        "Lap_SideR",
-        [(0.0, R(-54)), (1.0, R(-44))],
-        [(0.0, SKIRT_TOP_Z + 0.003), (0.65, 0.350), (1.0, 0.272)],
-        "lap3", width_table=[(0.0, R(38)), (1.0, R(30))],
-        tip=0.050, tip_pow=1.7, seed=5.2, nu=90, nv=58,
-        pleat_n=9, pleat_amp=0.015, edge_tuck=0.0, corner_lift=0.026,
-        blend_top=1.0, top_taper=0.45))
-    # dietro: due falde simmetriche
-    objs.append(panel(
-        "Lap_Back",
-        [(0.0, R(152)), (1.0, R(196))],
-        [(0.0, SKIRT_TOP_Z + 0.002), (0.6, 0.315), (1.0, 0.278)],
-        "lap", width_table=[(0.0, R(50)), (1.0, R(46))],
-        tip=0.055, tip_pow=1.5, seed=6.6, nu=120, nv=54,
-        pleat_n=11, pleat_amp=0.016, edge_tuck=0.0, corner_lift=0.040,
-        blend_top=1.0, top_taper=0.40))
+    defs = [
+        # Due pannelli larghi: quello a sinistra e' piu' corto.
+        ("Lap_FrontL", -32, -28, 32, 34, 0.49, "lapB", 0.055, 0.6),
+        ("Lap_FrontR",  32,  29, 32, 35, 0.32, "lap",  0.050, 2.1),
+        # Due code strette incorniciano la staffa e scendono sotto il resto.
+        ("Lap_CenterL", -15, -13, 12, 12, 0.235, "lap3", 0.045, 4.4),
+        ("Lap_CenterR",  15,  13, 12, 12, 0.215, "lap3", 0.036, 5.8),
+        # Falde laterali e posteriori: la silhouette non e' una campana chiusa.
+        ("Lap_SideL",  65,  68, 26, 24, 0.300, "lap2", 0.045, 3.7),
+        ("Lap_SideR", -65, -68, 26, 24, 0.285, "lap2", 0.050, 5.2),
+        ("Lap_BackL",  147,  151, 34, 33, 0.285, "lapB", 0.055, 6.6),
+        ("Lap_BackR", -147, -151, 34, 33, 0.300, "lap", 0.050, 7.3),
+    ]
+    objs = []
+    for name, a0, a1, w0, w1, zbot, layer, tip, seed in defs:
+        objs.append(panel(
+            name, [(0.0, R(a0)), (1.0, R(a1))],
+            [(0.0, SKIRT_TOP_Z + 0.002), (1.0, zbot)], layer,
+            width_table=[(0.0, R(w0)), (1.0, R(w1))],
+            tip=tip, tip_pow=1.25, seed=seed,
+            nu=112 if 'Center' not in name else 64, nv=66,
+            pleat_n=11, pleat_amp=0.012, corner_lift=0.022,
+            edge_tuck=0.0, blend_top=0.92, top_taper=0.78))
     return objs
 
 
 def drape_specs():
-    """Scialli scuri: (nome, tabella angoli, tabella quote, semiampiezza)."""
+    """Scialli obliqui sui fianchi, visibili anche dalla vista frontale."""
     R = math.radians
     return [
-        ("Drape_L", [(0.0, R(72)), (0.45, R(88)), (1.0, R(108))],
-         [(0.0, 0.950), (0.5, 0.700), (1.0, 0.415)], [(0.0, R(22)), (1.0, R(13))], 1.2),
-        ("Drape_R", [(0.0, R(-74)), (0.45, R(-90)), (1.0, R(-110))],
-         [(0.0, 0.950), (0.5, 0.695), (1.0, 0.410)], [(0.0, R(22)), (1.0, R(13))], 3.4),
-        ("Drape_L2", [(0.0, R(100)), (1.0, R(116))],
-         [(0.0, 0.930), (1.0, 0.560)], [(0.0, R(11)), (1.0, R(7))], 5.0),
-        ("Drape_R2", [(0.0, R(-102)), (1.0, R(-118))],
-         [(0.0, 0.930), (1.0, 0.555)], [(0.0, R(11)), (1.0, R(7))], 7.1),
+        ("Drape_L", [(0.0, R(64)), (0.5, R(70)), (1.0, R(78))],
+         [(0.0, 0.952), (1.0, 0.535)], [(0.0, R(17)), (1.0, R(16))], 1.2),
+        ("Drape_R", [(0.0, R(-64)), (0.5, R(-70)), (1.0, R(-78))],
+         [(0.0, 0.952), (1.0, 0.535)], [(0.0, R(17)), (1.0, R(16))], 3.4),
+        ("Drape_L2", [(0.0, R(92)), (1.0, R(109))],
+         [(0.0, 0.933), (1.0, 0.540)], [(0.0, R(11)), (1.0, R(9))], 5.0),
+        ("Drape_R2", [(0.0, R(-92)), (1.0, R(-109))],
+         [(0.0, 0.933), (1.0, 0.540)], [(0.0, R(11)), (1.0, R(9))], 7.1),
     ]
 
 
@@ -899,7 +880,7 @@ def build_drapes():
         pnl = Panel(name, ang, ztab, layer, width_table=wtab,
                     tip=0.052, tip_pow=1.4, seed=seed,
                     pleat_n=11, pleat_amp=0.0060, edge_tuck=0.0,
-                    blend_top=0.9, top_taper=0.62)
+                    blend_top=0.85, top_taper=0.85)
         objs.append(pnl.build(nu=96, nv=70, thickness=0.0032))
         drapes.append(pnl)
     return objs, drapes
@@ -909,93 +890,9 @@ def build_drapes():
 # fascia e cintura
 # --------------------------------------------------------------------------
 
-SASH_TOP = [(0.0, 1.058), (0.5, 1.086), (1.0, 1.084), (1.5, 1.058),
-            (2.0, 1.058)]
-
-
 def sash_top(a):
-    """Bordo alto della fascia: sale ai fianchi come un obi inamidato."""
-    # a misurato da -pi a pi partendo dal davanti
-    aa = ((a + math.pi) % TAU) - math.pi
-    return 1.062 + 0.030 * abs(math.sin(aa)) ** 1.4
-
-
-def build_sash():
-    """Fascia in vita: banda avorio con bordo arrotolato e fodera interna.
-
-    Il bordo superiore non e' un disco: e' un *orlo* sottile che si arrotola
-    verso l'interno e scende in una fodera, come una vera fascia di stoffa.
-    Cosi' dall'alto si vede la fodera (non un tappo) e di lato il bordo resta
-    una linea, non una tesa di cappello.
-    """
-    objs = []
-    nu = 208
-    z_top_side = 1.062
-    z_top_front = 1.046
-
-    def topline(a):
-        aa = ((a + math.pi) % TAU) - math.pi
-        # bordo quasi dritto con una lieve onda: si legge come una fascia,
-        # non come la tesa di un cappello
-        return z_top_front + (z_top_side - z_top_front) * abs(math.sin(aa)) ** 2.2
-
-    def shell(a, z, extra):
-        pull = 0.007 * max(0.0, math.cos(a)) ** 3
-        return Vector(((WAIST_RX - pull + extra) * math.sin(a),
-                       -(WAIST_RY - pull + extra) * math.cos(a), z))
-
-    # --- parete esterna: dal bordo alto al fondo, con panciotto leggero
-    def surf(u, v):
-        a = TAU * u
-        zt = topline(a)
-        zb = SASH_BOT_Z - 0.002
-        z = zt + (zb - zt) * v
-        bulge = 0.005 * math.sin(math.pi * min(v * 1.1, 1.0)) ** 0.8
-        p = shell(a, z, bulge)
-        p += normal_dir(a) * wrinkle(p, 0.0014, 12.0, 0.6)
-        return p
-
-    objs.append(cloth_grid("Sash_Body", nu, 22, surf, thickness=0.007))
-
-    # --- fodera: scende verso l'interno, si vede dall'alto
-    def surf_liner(u, v):
-        a = TAU * u
-        zt = topline(a)
-        extra = -0.006 - 0.030 * v
-        z = zt - 0.004 - 0.040 * v
-        return shell(a, z, extra)
-
-    objs.append(cloth_grid("Sash_Liner", nu, 8, surf_liner, thickness=0.0))
-
-    # fondo: chiude l'interno del capo, nascosto sotto il bordo
-    def surf_floor(u, v):
-        a = TAU * u
-        # imbuto molto allungato: si comporta come una colonna chiusa, quindi
-        # non si vede nessun piano orizzontale guardando dentro il capo
-        r = 1.0 - 0.94 * v ** 1.6
-        z = topline(a) - 0.020 - 0.560 * v
-        return Vector(((WAIST_RX - 0.006) * r * math.sin(a),
-                       -(WAIST_RY - 0.006) * r * math.cos(a), z))
-
-    objs.append(cloth_grid("Sash_Floor", nu, 6, surf_floor, thickness=0.0))
-
-    # --- teli incrociati: due nastri alti che si incrociano davanti
-    for k, sgn in enumerate((1.0, -1.0)):
-        def surf_cross(u, v, sgn=sgn, k=k):
-            a = TAU * u
-            aa = ((a + math.pi) % TAU) - math.pi
-            center = 1.030 + sgn * 0.026 * math.sin(aa) - 0.008 * math.cos(aa) ** 2
-            half = 0.030 * (0.85 + 0.15 * abs(math.sin(aa)))
-            z = center - half + 2.0 * half * v
-            # i teli stanno appena sopra la fascia: 4-6 mm, non 15
-            extra = 0.0055 + 0.0022 * k
-            p = shell(a, z, extra - 0.002 * max(0.0, math.cos(a)) ** 2)
-            p += normal_dir(a) * wrinkle(p, 0.0014, 13.0, 1.4 + k)
-            return p
-
-        objs.append(cloth_grid(f"Sash_Cross{k}", nu, 10, surf_cross,
-                               thickness=0.006))
-    return objs
+    """Bordo alto morbido, appena piu' alto sui fianchi."""
+    return 1.072 + 0.018 * abs(math.sin(a)) ** 1.5
 
 
 def waist_pt(a, z, extra=0.0):
@@ -1003,29 +900,78 @@ def waist_pt(a, z, extra=0.0):
                    -(WAIST_RY + extra) * math.cos(a), z))
 
 
-def build_belt():
-    """Cinghia scura in vita, appoggiata sopra la fascia."""
+def build_sash():
+    """Fascia avorio e due veri teli diagonali incrociati intorno alla vita."""
     objs = []
-    pts, widths = [], []
-    n = 168
-    for i in range(n + 1):
-        t = i / n
-        a = TAU * t
-        aa = ((a + math.pi) % TAU) - math.pi
-        z = 1.036 - 0.018 * max(0.0, math.cos(aa)) ** 2
-        pts.append(waist_pt(a, z, 0.0085))
-        widths.append(0.024 * (0.90 + 0.10 * abs(math.sin(a))))
-    objs.append(ribbon("Belt_Dark", pts, 0.024, thickness=0.0040,
-                       up=(0, 0, 1), widths=widths))
+    nu = 208
+
+    def body(u, v):
+        a = TAU * u
+        z = sash_top(a) + (SASH_BOT_Z - sash_top(a)) * v
+        fullness = 0.0025 * math.sin(math.pi * v)
+        return waist_pt(a, z, fullness)
+
+    objs.append(cloth_grid("Sash_Body", nu, 28, body, thickness=0.004))
+
+    def liner(u, v):
+        a = TAU * u
+        return waist_pt(a, sash_top(a) - 0.003 - 0.042 * v,
+                        -0.005 - 0.025 * v)
+
+    objs.append(cloth_grid("Sash_Liner", nu, 8, liner, thickness=0.0))
+
+    def floor(u, v):
+        a = TAU * u
+        r = 1.0 - 0.94 * v ** 1.6
+        z = sash_top(a) - 0.020 - 0.560 * v
+        return Vector(((WAIST_RX - 0.006) * r * math.sin(a),
+                       -(WAIST_RY - 0.006) * r * math.cos(a), z))
+
+    objs.append(cloth_grid("Sash_Floor", nu, 6, floor, thickness=0.0))
+
+    # Diversi offset tengono distinti i due drappeggi al loro incrocio.
+    for k, sgn in enumerate((1.0, -1.0)):
+        def cross(u, v, sgn=sgn, k=k):
+            a = TAU * u
+            center = 1.022 + sgn * 0.050 * math.sin(a)
+            width = 0.042 + 0.005 * abs(math.sin(a))
+            z = center + (v - 0.5) * width
+            # Tre solchi soffici nel tessuto, orientati lungo il nastro.
+            fold = 0.0018 * math.cos(3.0 * math.pi * v + 0.7 * math.sin(a))
+            return waist_pt(a, z, 0.014 + k * 0.006 + fold)
+
+        objs.append(cloth_grid(f"Sash_Cross{k}", nu, 20, cross,
+                               thickness=0.0028))
     return objs
 
 
+def build_belt():
+    """Cintura scura diagonale sulla fascia, non un bordo orizzontale."""
+    def surf(u, v):
+        a = TAU * u
+        center = 1.025 - 0.020 * math.sin(a)
+        z = center + (v - 0.5) * 0.029
+        return waist_pt(a, z, 0.011)
+    return [cloth_grid("Belt_Dark", 192, 8, surf, thickness=0.0025)]
+
+
+def build_buckle_back():
+    # Il cuoio dietro la fibbia impedisce di vedere il lino nel foro.
+    return [ellipsoid("Buckle_Back", (0, -0.152, 1.026),
+                      (0.025, 0.0025, 0.025), segs=40, rings=16)]
+
+
 def build_ring():
-    """Anello d'ottone al centro della vita, appoggiato sulla cinghia."""
-    c = waist_pt(0.0, 1.036, 0.052)
-    c.y -= 0.002
-    objs = [torus("BeltRing", c, (0.0, 1.0, 0.10), 0.0255, 0.0055,
-                  seg_major=72, seg_minor=16, squash=1.06)]
+    """Fibbia d'ottone con rivetti minuti come nel concept."""
+    c = Vector((0.0, -0.159, 1.026))
+    objs = [torus("BeltRing", c, (0.0, 1.0, 0.0), 0.0255, 0.0048,
+                  seg_major=72, seg_minor=16, squash=1.0)]
+    for k in range(8):
+        a = TAU * k / 8.0
+        p = c + Vector((0.0255 * math.cos(a), -0.0042,
+                        0.0255 * math.sin(a)))
+        objs.append(ellipsoid(f"Buckle_Stud{k}", p,
+                              (0.0015, 0.0010, 0.0015), segs=10, rings=6))
     return objs
 
 
@@ -1033,83 +979,90 @@ def build_ring():
 # staffa con i simboli
 # --------------------------------------------------------------------------
 
-STRAP_TOP_Z = 1.020
-STRAP_BOT_Z = 0.402
+STRAP_TOP_Z = 1.041
+STRAP_SHOULDER_Z = 0.403
+STRAP_TIP_Z = 0.350
 
 
 def strap_halfwidth(z):
-    t = (STRAP_TOP_Z - z) / (STRAP_TOP_Z - STRAP_BOT_Z)
-    return 0.0275 * (1.0 - 0.10 * t) - 0.019 * max(0.0, t - 0.90) ** 1.4
+    t = min(1.0, max(0.0, (STRAP_TOP_Z - z) /
+                         (STRAP_TOP_Z - STRAP_TIP_Z)))
+    return 0.0265 * (1.0 - 0.10 * t)
 
 
 def strap_point(x, z, off=0.0):
-    """Punto sulla staffa: x laterale in metri, z quota, off verso l'esterno."""
+    """Superficie della staffa e dei suoi ricami; davanti = -Y."""
     w = max(strap_halfwidth(z), 1e-3)
-    # la staffa si appoggia sulla falda frontale
-    base = surface(0.0, z, "lap", extra=0.0)
-    y = base.y - 0.010 - off - 0.0025 * (x / w) ** 2
+    # In vita si infila sotto la fibbia; sotto si appoggia sopra i lembi.
+    layer = 0.021 + 0.056 * smoothstep(0.0, 0.14, SKIRT_TOP_Z - z)
+    f = skirt_disp(0.0, z)
+    base = surface(0.0, min(z, SKIRT_TOP_Z), "base", extra=layer + f)
+    # Una lieve convessita' mantiene naturale il nastro, senza tagli bianchi.
+    y = base.y - off - 0.0025 * (x / w) ** 2
     return Vector((x, y, z))
 
 
 def build_strap():
-    objs = []
-    nu, nv = 14, 96
+    nu, nv = 20, 120
 
     def surf(u, v):
-        z = STRAP_TOP_Z + (STRAP_BOT_Z - STRAP_TOP_Z) * v
-        w = max(strap_halfwidth(z), 1e-3)
-        x = (u - 0.5) * 2.0 * w
-        zz = z - 0.050 * max(0.0, v - 0.94) / 0.06
-        p = strap_point(x, z, 0.0)
-        p.z = zz
-        return p
+        side = 2.0 * u - 1.0
+        end_z = STRAP_TIP_Z + (STRAP_SHOULDER_Z - STRAP_TIP_Z) * abs(side)
+        z = STRAP_TOP_Z + (end_z - STRAP_TOP_Z) * v
+        x = side * strap_halfwidth(z)
+        return strap_point(x, z)
 
-    objs.append(cloth_grid("Strap", nu, nv, surf, thickness=0.0035))
-    return objs, strap_gold()
+    body = cloth_grid("Strap", nu, nv, surf, thickness=0.0025)
+    return [body], strap_gold()
 
 
-def _gold(pts3d, width, thickness=0.0020):
-    nrm = [Vector((0, -1, 0))] * len(pts3d)
+def _gold(pts3d, width, thickness=0.0010):
+    nrm = []
+    for p in pts3d:
+        dz = 0.001
+        slope = (strap_point(p.x, p.z + dz).y -
+                 strap_point(p.x, p.z - dz).y) / (2.0 * dz)
+        nrm.append(Vector((0, -1, slope)).normalized())
     return ribbon_n("StrapGold", pts3d, nrm, width, thickness=thickness)
 
 
-def _gold2d(pts2d, width, off=0.0055):
-    return _gold([strap_point(x, z, off) for (x, z) in pts2d], width)
+def _gold2d(pts2d, width, off=0.0028):
+    # Campionare anche i segmenti lunghi: il ricamo segue la curvatura della
+    # stoffa invece di attraversarla fra i soli due estremi.
+    dense = []
+    for (x0, z0), (x1, z1) in zip(pts2d, pts2d[1:]):
+        n = max(1, int(math.ceil(math.hypot(x1 - x0, z1 - z0) / 0.008)))
+        dense.extend((x0 + (x1 - x0) * i / n,
+                      z0 + (z1 - z0) * i / n) for i in range(n))
+    dense.append(pts2d[-1])
+    return _gold([strap_point(x, z, off) for x, z in dense], width)
 
 
 def strap_gold():
-    """Ricami dorati: bordo a freccia, catena di simboli, punta."""
+    """Catena centrale: rombo, cerchio, asta, rombo e doppia punta dorata."""
     objs = []
-    zb = STRAP_BOT_Z
-    # punta: bordo a freccia
-    objs.append(_gold2d([(-0.026, zb + 0.036), (0.0, zb - 0.038),
-                         (0.026, zb + 0.036)], 0.0062))
-    objs.append(_gold2d([(-0.020, zb + 0.002), (0.0, zb - 0.058),
-                         (0.020, zb + 0.002)], 0.0042))
-    # bordi laterali della staffa
-    for s in (-1.0, 1.0):
-        pts = [(s * (strap_halfwidth(z) - 0.0035), z)
-               for z in [zb + 0.06 + 0.30 * i / 14 for i in range(15)]]
-        objs.append(_gold2d(pts, 0.0038))
-    # catena di simboli
-    objs.append(_gold2d([(-0.008, 0.996), (0.0, 1.006), (0.008, 0.996)],
-                        0.0032))
-    for cz, rx, rz in ((0.968, 0.0115, 0.020), (0.726, 0.0100, 0.016)):
-        pts = []
-        for i in range(5):
-            ang = TAU * i / 4 + math.pi / 2
-            pts.append((rx * math.cos(ang), cz + rz * math.sin(ang)))
-        objs.append(_gold2d(pts, 0.0040))
-    objs.append(_gold2d([(0.0, 0.946), (0.0, 0.930)], 0.0032))
-    # cerchio con asta (simbolo centrale)
-    pts = []
-    for i in range(37):
-        ang = TAU * i / 36
-        pts.append((0.0175 * math.cos(ang), 0.872 + 0.0175 * math.sin(ang)))
-    objs.append(_gold2d(pts, 0.0042))
-    objs.append(_gold2d([(0.0, 0.8545), (0.0, 0.786)], 0.0032))
-    objs.append(_gold2d([(-0.013, 0.806), (0.013, 0.806)], 0.0030))
-    objs.append(_gold2d([(0.0, 0.708), (0.0, 0.640)], 0.0026))
+    def stroke(points, width=0.0022):
+        objs.append(_gold2d(points, width))
+    def diamond(cz, rx, rz):
+        stroke([(0, cz + rz), (rx, cz), (0, cz - rz),
+                (-rx, cz), (0, cz + rz)], 0.0025)
+
+    # Segno superiore, allungato; cerchio e piccola traversa.
+    stroke([(0.0, 0.934), (0.0, 0.870)], 0.0017)
+    diamond(0.858, 0.0070, 0.012)
+    circle = [(0.017 * math.cos(TAU * i / 48),
+               0.820 + 0.017 * math.sin(TAU * i / 48)) for i in range(49)]
+    stroke(circle, 0.0026)
+    stroke([(0, 0.803), (0, 0.654)], 0.0020)
+    stroke([(-0.008, 0.790), (0.008, 0.790)], 0.0020)
+    diamond(0.642, 0.0078, 0.012)
+    stroke([(0, 0.630), (0, 0.484)], 0.0022)
+    # La parte finale a freccia rimane dentro il bordo a V del nastro.
+    stroke([(-0.022, 0.411), (0, 0.365), (0.022, 0.411)], 0.0030)
+    stroke([(-0.019, 0.395), (0, 0.358), (0.019, 0.395)], 0.0022)
+    for side in (-1, 1):
+        stroke([(side * 0.019, 0.426), (side * 0.019, 0.402)], 0.0023)
+        stroke([(side * 0.008, 0.375), (side * 0.008, 0.397)], 0.0027)
     return objs
 
 
@@ -1117,86 +1070,38 @@ def strap_gold():
 # rune sugli scialli scuri
 # --------------------------------------------------------------------------
 
-def drape_channel(name, ang, ztab, w0, w1, n=26):
-    """Solco lungo il bordo dello scialle: due nastri che formano il bordo."""
-    objs = []
-    for sgn in (-1.0, 1.0):
-        pts, ws = [], []
-        for i in range(n + 1):
-            v = i / n
-            a_c = lerp_table(ang, v)
-            hw = lerp_table([(0.0, w0), (1.0, w1)], v)
-            z = lerp_table(ztab, v)
-            pts.append(surface(a_c + sgn * hw * 0.90, z, "drape", extra=0.0012))
-            ws.append(0.0050)
-        objs.append(ribbon(name + f"_edge{sgn}", pts, 0.005, thickness=0.0022,
-                           up=(0, 0, 1), widths=ws))
-    return objs
-
-
-def drape_surface_pt(a, z, extra=0.0025):
-    return surface(a, z, "drape", extra=extra)
-
-
 def build_drape_runes(drapes):
-    """Rune dorate incassate negli scialli (parametriche sul lembo)."""
+    """Bordi e motivi geometrici dorati, applicati ai veri lembi laterali."""
     objs = []
+
+    def path(pnl, name, vertices, width=0.0023):
+        # Suddividiamo i tratti prima di proiettarli sul lembo piegato.
+        uv = []
+        for (u0, v0), (u1, v1) in zip(vertices, vertices[1:]):
+            count = max(1, int(math.ceil(max(abs(u1-u0), abs(v1-v0)) / 0.018)))
+            uv.extend((u0+(u1-u0)*i/count, v0+(v1-v0)*i/count)
+                      for i in range(count))
+        uv.append(vertices[-1])
+        normals = [pnl.nrm(u, v) for u, v in uv]
+        # La griglia ha 3.2 mm di spessore sul lato esterno: stare sopra
+        # l'estrusione, non sotto la superficie originale della griglia.
+        pts = [pnl.pt(u, v) + n * 0.0052 for (u, v), n in zip(uv, normals)]
+        objs.append(ribbon_n(name, pts, normals, width, thickness=0.0009))
+
     for pnl in drapes:
         name = pnl.name
-        # 1) filo dorato ai due bordi
-        for sgn in (-1.0, 1.0):
-            us = [0.5 + sgn * 0.5 * 0.90] * 9
-            vs = [0.06 + i / 8 * 0.86 for i in range(9)]
-            pts = [pnl.pt(u, v, 0.0012) for u, v in zip(us, vs)]
-            nrms = [pnl.nrm(u, v) for u, v in zip(us, vs)]
-            objs.append(ribbon_n(f"{name}_edge{sgn}", pts, nrms, 0.0030,
-                                 thickness=0.0014))
-        # 2) zig-zag centrale
-        pts, nrms = [], []
-        for i in range(19):
-            v = 0.12 + 0.76 * i / 18
-            u = 0.68 if i % 2 == 0 else 0.32
-            pts.append(pnl.pt(u, v, 0.0014))
-            nrms.append(pnl.nrm(u, v))
-        objs.append(ribbon_n(f"{name}_zig", pts, nrms, 0.0030,
-                             thickness=0.0014))
-        # 3) rombi
-        for v, rr in ((0.55, 0.0070), (0.78, 0.0050)):
-            c = pnl.pt(0.5, v, 0.0014)
-            n = pnl.nrm(0.5, v)
-            t = (pnl.pt(0.56, v) - pnl.pt(0.44, v)).normalized()
-            b = n.cross(t).normalized()
-            quad = [c + t * (rr * math.cos(TAU * j / 4 + math.pi / 2))
-                    + b * (rr * 1.7 * math.sin(TAU * j / 4 + math.pi / 2))
-                    for j in range(5)]
-            objs.append(ribbon_n(f"{name}_dia{v}", quad, [n] * 5, 0.0028,
-                                 thickness=0.0014))
+        for u in (0.10, 0.90):
+            path(pnl, name + "_border", [(u, 0.08), (u, 0.90)], 0.0022)
+        if name.endswith("2"):
+            continue
+        # Motivo angolare come un ricamo, non un fitto zig-zag ornamentale.
+        path(pnl, name + "_diagonal", [(0.18, 0.23), (0.76, 0.43),
+                                      (0.30, 0.60), (0.76, 0.77)], 0.0026)
+        for v in (0.37, 0.60):
+            path(pnl, name + "_diamond", [(0.50, v-0.047), (0.66, v),
+                                           (0.50, v+0.047), (0.34, v),
+                                           (0.50, v-0.047)], 0.0023)
     return objs
-
-
-def surface_normal(a, z, layer="drape", extra=0.0):
-    da, dz = 1e-3, 1e-3
-    p = surface(a, z, layer, extra)
-    pa = surface(a + da, z, layer, extra)
-    pz = surface(a, z + dz, layer, extra)
-    nrm = (pa - p).cross(pz - p)
-    if nrm.length < 1e-9:
-        return normal_dir(a)
-    nrm.normalize()
-    if nrm.dot(normal_dir(a)) < 0:
-        nrm = -nrm
-    return nrm
-
-
-def gold_path(name, pts_az, layer="drape", width=0.0035, extra=0.0016,
-              thickness=0.0016):
-    """Nastro dorato tracciato in coordinate superficie (angolo, quota)."""
-    pts, nrm = [], []
-    for (a, z) in pts_az:
-        n = surface_normal(a, z, layer)
-        pts.append(surface(a, z, layer, extra) + n * extra)
-        nrm.append(n)
-    return ribbon_n(name, pts, nrm, width, thickness=thickness)
 
 
 # --------------------------------------------------------------------------
@@ -1254,11 +1159,10 @@ def build_all():
         "wrap": build_legwraps() + straps,
         "sole": soles,
         "fabric": (build_underskirt() + build_skirt() + build_lappets()
-                   + build_sash() + build_belt()),
-        "dark": drapes + strap_body,
+                   + build_sash()),
+        "dark": drapes + strap_body + build_belt() + build_buckle_back(),
         "gold": build_ring(),
         "gold_trim": build_drape_runes(drape_panels) + strap_gold_parts,
-        "gold": (build_ring() + build_drape_runes(drape_panels) + []),
     }
     all_objs = []
     for key, objs in groups.items():

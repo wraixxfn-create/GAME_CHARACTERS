@@ -1,21 +1,10 @@
-"""DRESS1 — materiali PBR glTF-safe.
+"""DRESS1 — materiali PBR e bake AO.
 
-Sei materiali, tutti compatibili con l'export glTF (Principled BSDF + mappe
-collegate nei canali standard, nessun nodo esotico):
-
-| materiale | mappe | note |
-|---|---|---|
-| `DRESS1_Linen` | baseColor, normal, ORM, emissive | lino avorio del capo: trama tessuta, pieghe, AO bakeata |
-| `DRESS1_Wool` | baseColor, normal, ORM | lana scura di staffa, scialli e fasciature |
-| `DRESS1_Gold` | baseColor, ORM | ottone dei ricami: metallic 1, roughness da mappa |
-| `DRESS1_Canvas` | baseColor, ORM | suola dei sandali |
-| `DRESS1_Leather` | baseColor, ORM | cuoio delle fascette |
-| `DRESS1_Skin` | baseColor, ORM | piedi e caviglie |
-
-Le texture sono **generate proceduralmente e cotte** su Cycles (AO) oppure
-disegnate in numpy (trama, pieghe, usura): il pacchetto resta autonomo, non
-serve scaricare nulla. Le mappe finiscono impacchettate nel `.blend` e
-nell'`.glb`.
+Quattro materiali testurizzati (lino, lana, tela della suola e pelle) e due
+metalli a tinta piena (ottone e ricamo). Le immagini sono generate in numpy,
+l'AO viene bakeata su Cycles e le mappe sono impacchettate nel .blend.
+Le connessioni al nodo glTF Material Output permettono all'exporter di
+includere l'occlusione nei GLB.
 """
 
 from __future__ import annotations
@@ -156,8 +145,13 @@ def image_solid(name, rgb, size=8, colorspace="sRGB"):
     return image_from_array(name, arr, colorspace)
 
 
-def bake_ao(ob, resolution=2048, samples=48, distance=0.35):
-    """AO su Cycles, cotta sulla UV attiva e restituita come immagine."""
+def bake_ao(ob, resolution=1024, samples=32, distance=0.30):
+    """Bake AO sulla UV comune, con una destinazione per *ogni* materiale.
+
+    Blender cerca il nodo immagine attivo nello slot della faccia che sta
+    cuocendo. Preparare solo lo slot zero lascia vuota la maggior parte della
+    mappa. I nodi temporanei vengono rimossi dopo il bake.
+    """
     sc = bpy.context.scene
     sc.render.engine = "CYCLES"
     sc.cycles.device = "CPU"
@@ -169,18 +163,29 @@ def bake_ao(ob, resolution=2048, samples=48, distance=0.35):
     sc.world.light_settings.distance = distance
 
     img = bpy.data.images.new("DRESS1_AO", resolution, resolution, alpha=False)
-    mat = ob.data.materials[0]
-    nodes = mat.node_tree.nodes
-    tex = nodes.new("ShaderNodeTexImage")
-    tex.image = img
-    for n in nodes:
-        n.select = False
-    tex.select = True
-    nodes.active = tex
+    targets = []
+    for mat in ob.data.materials:
+        if mat is None:
+            continue
+        mat.use_nodes = True
+        nodes = mat.node_tree.nodes
+        tex = nodes.new("ShaderNodeTexImage")
+        tex.image = img
+        for node in nodes:
+            node.select = False
+        tex.select = True
+        nodes.active = tex
+        targets.append((nodes, tex))
     sc.cycles.bake_type = "AO"
+    bpy.ops.object.select_all(action="DESELECT")
+    ob.select_set(True)
     bpy.context.view_layer.objects.active = ob
-    bpy.ops.object.bake(type="AO")
-    # stessa trafila delle altre mappe: su disco, ricaricata, impacchettata
+    try:
+        bpy.ops.object.bake(type="AO")
+    finally:
+        for nodes, tex in targets:
+            nodes.remove(tex)
+
     ensure_dir(TEX_DIR)
     path = os.path.join(TEX_DIR, "DRESS1_AO.png")
     img.filepath_raw = path
@@ -189,8 +194,8 @@ def bake_ao(ob, resolution=2048, samples=48, distance=0.35):
     img.source = "FILE"
     img.filepath = path
     img.reload()
+    img.colorspace_settings.name = "Non-Color"
     img.pack()
-    nodes.remove(tex)
     return img
 
 
@@ -251,6 +256,7 @@ def make_brass_material(name, base_rgb=(0.470, 0.330, 0.125),
     bsdf.inputs["Base Color"].default_value = (*base_rgb, 1.0)
     bsdf.inputs["Metallic"].default_value = metallic
     bsdf.inputs["Roughness"].default_value = roughness
+    mat.use_backface_culling = True
     return mat
 
 
@@ -288,16 +294,11 @@ def make_material(name, base_img, orm_img, normal_img=None, ao_img=None,
             tao = nt.nodes.new("ShaderNodeTexImage")
             tao.image = ao_img
             tao.location = (-400, -350)
-            mix = nt.nodes.new("ShaderNodeMix")
-            mix.data_type = "FLOAT"
-            mix.blend_type = "MULTIPLY"
-            mix.inputs["Factor"].default_value = 1.0
-            mix.location = (-120, -350)
-            nt.links.new(sep.outputs["Red"], mix.inputs[2])
-            nt.links.new(tao.outputs["Color"], mix.inputs[3])
+            # Il canale R delle ORM e' bianco; collegare direttamente il
+            # bake al nodo glTF preserva occlusionTexture anche nell'export.
             grp = gltf_output_group(mat)
             grp.location = (250, -420)
-            nt.links.new(mix.outputs[0], grp.inputs["Occlusion"])
+            nt.links.new(tao.outputs["Color"], grp.inputs["Occlusion"])
     else:
         bsdf.inputs["Metallic"].default_value = metallic
         bsdf.inputs["Roughness"].default_value = roughness
@@ -369,51 +370,16 @@ def wool_maps():
     return base, nrm, orm
 
 
-def gold_maps():
-    """Ottone: base calda, roughness con macchie di patina."""
-    size = TEX
-    grain = fbm(size, base_cells=24, octaves=4, seed=41)
-    patina = fbm(size, base_cells=5, octaves=4, seed=53)
-    base = np.zeros((size, size, 3), np.float32)
-    base[..., 0] = 0.520 + 0.085 * grain
-    base[..., 1] = 0.372 + 0.065 * grain
-    base[..., 2] = 0.140 + 0.040 * grain
-    dark = (patina < 0.44)
-    base[dark] *= 0.70
-    base = (np.clip(base, 0, 1) * 255).astype(np.uint8)
-    rough = np.clip(0.46 + 0.28 * patina + 0.08 * grain, 0, 1)
-    orm = np.zeros((size, size, 3), np.uint8)
-    orm[..., 0] = 255
-    orm[..., 1] = (rough * 255).astype(np.uint8)
-    orm[..., 2] = 238          # ottone: quasi metallo, non specchio perfetto
-    return base, None, orm
-
-
 def canvas_maps():
     h = cloth_map(TEX, seed=61, fiber=1.1)
     base = np.zeros((TEX, TEX, 3), np.float32)
     tone = 0.86 + 0.14 * h
-    base[..., 0] = 0.760 * tone
-    base[..., 1] = 0.742 * tone
-    base[..., 2] = 0.700 * tone
+    # Suola cuoio bruno scuro: non una suola bianca da infradito.
+    base[..., 0] = 0.220 * tone
+    base[..., 1] = 0.175 * tone
+    base[..., 2] = 0.145 * tone
     nrm = normal_from_height(h, strength=2.0)
     rough = np.clip(0.80 + 0.12 * (1 - h), 0, 1)
-    orm = np.zeros((TEX, TEX, 3), np.uint8)
-    orm[..., 0] = 255
-    orm[..., 1] = (rough * 255).astype(np.uint8)
-    orm[..., 2] = 0
-    return base, nrm, orm
-
-
-def leather_maps():
-    h = fbm(TEX, base_cells=12, octaves=5, seed=71)
-    base = np.zeros((TEX, TEX, 3), np.float32)
-    tone = 0.75 + 0.25 * h
-    base[..., 0] = 0.125 * tone
-    base[..., 1] = 0.104 * tone
-    base[..., 2] = 0.090 * tone
-    nrm = normal_from_height(h, strength=1.4)
-    rough = np.clip(0.42 + 0.28 * h, 0, 1)
     orm = np.zeros((TEX, TEX, 3), np.uint8)
     orm[..., 0] = 255
     orm[..., 1] = (rough * 255).astype(np.uint8)
@@ -425,9 +391,9 @@ def skin_maps():
     h = fbm(TEX, base_cells=40, octaves=4, seed=81)
     base = np.zeros((TEX, TEX, 3), np.float32)
     tone = 0.90 + 0.10 * h
-    base[..., 0] = 0.610 * tone
-    base[..., 1] = 0.452 * tone
-    base[..., 2] = 0.372 * tone
+    base[..., 0] = 0.490 * tone
+    base[..., 1] = 0.344 * tone
+    base[..., 2] = 0.270 * tone
     nrm = normal_from_height(h, strength=0.9)
     rough = np.clip(0.48 + 0.14 * h, 0, 1)
     orm = np.zeros((TEX, TEX, 3), np.uint8)
@@ -440,11 +406,6 @@ def skin_maps():
 # --------------------------------------------------------------------------
 # main
 # --------------------------------------------------------------------------
-
-def setup_uv_for_bake(ob):
-    """La bake AO ha bisogno di una UV senza isole sovrapposte: gia' fatto."""
-    return ob
-
 
 def main():
     src = os.path.join(work_dir(), "opt", "DRESS1_opt.blend")
@@ -463,12 +424,11 @@ def main():
         sc.world = w
         w.use_nodes = True
     sc.world.light_settings.distance = 0.30
-    ao_img = None
-    try:
-        ao_img = bake_ao(ob, resolution=2048, samples=64, distance=0.30)
-        print("[mat] AO ok")
-    except Exception as exc:                       # pragma: no cover
-        print("[mat] AO fallita:", exc)
+    ao_resolution = int(os.environ.get("DRESS1_AO_SIZE", "1024"))
+    ao_samples = int(os.environ.get("DRESS1_AO_SAMPLES", "32"))
+    ao_img = bake_ao(ob, resolution=ao_resolution, samples=ao_samples,
+                     distance=0.30)
+    print(f"[mat] AO ok ({ao_resolution}px, {ao_samples} samples)")
 
     base, nrm, orm = linen_maps()
     linen_base = image_from_array("DRESS1_Linen_BaseColor", base, "sRGB")
@@ -480,21 +440,10 @@ def main():
     wool_nrm = image_from_array("DRESS1_Wool_Normal", wnrm, "Non-Color")
     wool_orm = image_from_array("DRESS1_Wool_ORM", worm, "Non-Color")
 
-    gbase, _, gorm = gold_maps()
-    gold_base = image_from_array("DRESS1_Gold_BaseColor", gbase, "sRGB")
-    gold_orm = image_from_array("DRESS1_Gold_ORM", gorm, "Non-Color")
-
-
-
     cbase, cnrm, corm = canvas_maps()
     canvas_base = image_from_array("DRESS1_Canvas_BaseColor", cbase, "sRGB")
     canvas_nrm = image_from_array("DRESS1_Canvas_Normal", cnrm, "Non-Color")
     canvas_orm = image_from_array("DRESS1_Canvas_ORM", corm, "Non-Color")
-
-    lbase, lnrm, lorm = leather_maps()
-    leather_base = image_from_array("DRESS1_Leather_BaseColor", lbase, "sRGB")
-    leather_nrm = image_from_array("DRESS1_Leather_Normal", lnrm, "Non-Color")
-    leather_orm = image_from_array("DRESS1_Leather_ORM", lorm, "Non-Color")
 
     sbase, snrm, sorm = skin_maps()
     skin_base = image_from_array("DRESS1_Skin_BaseColor", sbase, "sRGB")
@@ -513,9 +462,6 @@ def main():
     mats["DRESS1_Canvas"] = make_material(
         "DRESS1_Canvas", canvas_base, canvas_orm, canvas_nrm, ao_img=ao_img,
         normal_strength=0.8, double_sided=True)
-    mats["DRESS1_Leather"] = make_material(
-        "DRESS1_Leather", leather_base, leather_orm, leather_nrm,
-        ao_img=ao_img, normal_strength=1.0)
     mats["DRESS1_Skin"] = make_material(
         "DRESS1_Skin", skin_base, skin_orm, skin_nrm, ao_img=ao_img,
         normal_strength=0.6)
@@ -539,57 +485,12 @@ def main():
                 new = mats["DRESS1_Linen"]
         slot.material = new
 
-    # materiale cuoio: le fascette dei sandali erano marcate Wool,
-    # le cinghie del sandalo diventano cuoio (molto piu' credibili)
     print("[mat] slot finali:", [s.material.name for s in ob.material_slots])
     path = os.path.join(out, "DRESS1_mat.blend")
     bpy.ops.wm.save_as_mainfile(filepath=path)
     print("[mat] salvato", path)
 
-    # i LOD usano le stesse mappe: si riapre ogni LOD e si rimappano gli slot
-    for tag in ("LOD1", "LOD2"):
-        lod = os.path.join(work_dir(), "opt", f"DRESS1_{tag}.blend")
-        if not os.path.exists(lod):
-            continue
-        bpy.ops.wm.open_mainfile(filepath=lod)
-        o = bpy.data.objects["DRESS1"]
-        names = [s.material.name if s.material else "" for s in o.material_slots]
-        # i materiali definitivi (e le loro immagini packate) vivono nel .blend
-        # gia' cotto: si appendono entrambi, altrimenti il LOD esce bianco
-        with bpy.data.libraries.load(path, link=False) as (src, dst):
-            dst.materials = [n for n in src.materials]
-            dst.images = [n for n in src.images]
-        imgs = {i.name: i for i in bpy.data.images}
-        for slot, name in zip(o.material_slots, names):
-            slot.material = bpy.data.materials.get(name) or bpy.data.materials["DRESS1_Linen"]
-        # ricollega i nodi immagine per nome (le mappe hanno nomi parlanti)
-        for slot in o.material_slots:
-            mat = slot.material
-            if not mat or not mat.use_nodes:
-                continue
-            for node in mat.node_tree.nodes:
-                if node.type != "TEX_IMAGE":
-                    continue
-                want = None
-                for suffix in ("BaseColor", "Normal", "ORM"):
-                    if suffix in node.name or node.image is None:
-                        pass
-                for img_name, img in imgs.items():
-                    if img.size[0] == 0:
-                        continue
-                    stem = mat.name.replace("DRESS1_", "")
-                    if img_name.startswith("DRESS1_" + stem):
-                        want = img
-                        break
-                if node.image is None or node.image.size[0] == 0:
-                    if want is not None:
-                        node.image = want
-        for m in list(bpy.data.materials):
-            if m.users == 0:
-                bpy.data.materials.remove(m)
-        dst = os.path.join(out, f"DRESS1_{tag}_mat.blend")
-        bpy.ops.wm.save_as_mainfile(filepath=dst)
-        print(f"[mat] {tag} -> {dst}")
+
 
 
 if __name__ == "__main__":

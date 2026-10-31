@@ -6,18 +6,16 @@ quote e controlli di sanita'.
 
 Controlli:
 
-* scala metrica (altezza fra 0,9 e 1,4 m per un capo a vita alta)
-* origine ai piedi (z min ≈ 0) e modello centrato sull'asse X
-* nessun vertice sotto il pavimento oltre 5 mm
-* massimo 6 materiali, ognuno con baseColor/roughness/metallic
-* le mappe emissive non devono esserci (il capo non emette)
-* i LOD devono essere sotto il LOD0 e usare gli stessi materiali
-* dimensioni file
+* scala metrica, origine ai piedi e modello centrato
+* budget di triangoli e materiali coerenti fra i LOD
+* vertici finiti, UV, normali, texture incorporate e mappe PBR/AO
+* nessuna emissiva, animazione, skin o estensione glTF
 """
 
 from __future__ import annotations
 
 import json
+import math
 import os
 import struct
 import sys
@@ -34,7 +32,8 @@ def read_glb(path):
     with open(path, "rb") as f:
         data = f.read()
     magic, version, length = struct.unpack_from("<III", data, 0)
-    assert magic == 0x46546C67, "non e' un glb"
+    assert magic == 0x46546C67 and version == 2, "non e' un glb 2.0"
+    assert length == len(data), "lunghezza GLB errata"
     off = 12
     chunks = {}
     while off < length:
@@ -71,6 +70,7 @@ def analyse(path):
     prim_info = []
     lo = [1e9] * 3
     hi = [-1e9] * 3
+    finite = True
     for mesh in js.get("meshes", []):
         for prim in mesh["primitives"]:
             if prim.get("mode", 4) != 4:
@@ -80,6 +80,7 @@ def analyse(path):
             pos = accessor_values(js, blob, prim["attributes"]["POSITION"])
             verts += len(pos)
             for p in pos:
+                finite = finite and all(math.isfinite(x) for x in p)
                 for k in range(3):
                     lo[k] = min(lo[k], p[k])
                     hi[k] = max(hi[k], p[k])
@@ -93,6 +94,13 @@ def analyse(path):
         "verts": verts,
         "materials": [m.get("name", "?") for m in mats],
         "images": len(imgs),
+        "embedded_images": all("bufferView" in image and
+                               image.get("mimeType") in {"image/png", "image/jpeg"}
+                               for image in imgs),
+        "finite": finite,
+        "uv_normals": bool(prim_info) and all(
+            "TEXCOORD_0" in prim.get("attributes", {}) and
+            "NORMAL" in prim.get("attributes", {}) for prim in prim_info),
         "double_sided": [bool(m.get("doubleSided")) for m in mats],
         "channels": sorted({k for m in mats for k in
                             ("baseColorTexture", "metallicRoughnessTexture",
@@ -138,6 +146,9 @@ def main():
         if os.path.exists(p):
             rows.append(analyse(p))
 
+    if len(rows) != 3:
+        raise SystemExit("Mancano uno o piu' export GLB (LOD0, LOD1, LOD2)")
+
     checks = []
     base = rows[0]
     h = base["hi"][1] - base["lo"][1]      # glTF e' Y-up
@@ -149,23 +160,44 @@ def main():
     cx = (base["lo"][0] + base["hi"][0]) * 0.5
     checks.append(("centrato sull'asse X (|x| < 20 mm)", abs(cx) < 0.020,
                    f"{cx*1000:+.1f} mm"))
-    checks.append(("massimo 6 materiali", len(base["materials"]) <= 6,
+    checks.append(("budget LOD0 (massimo 80.000 triangoli)",
+                   0 < base["tris"] <= 80000, str(base["tris"])))
+    checks.append(("sei materiali", len(base["materials"]) == 6,
                    str(len(base["materials"]))))
-    checks.append(("nessuna mappa emissive", not base["has_emissive"],
-                   "assente" if not base["has_emissive"] else "presente"))
-    checks.append(("loop di indipendenza (nessuna skin)", base["skins"] == 0,
-                   f"{base['skins']} skin"))
-    lod_ok = all(r["tris"] < base["tris"] for r in rows[1:]) if len(rows) > 1 else False
-    checks.append(("LOD1/LOD2 piu' leggeri del LOD0", lod_ok,
-                   " ".join(f"{r['tris']}" for r in rows)))
-    same_mats = all(r["materials"] == base["materials"] for r in rows[1:])
-    checks.append(("stessi materiali in tutti i LOD", same_mats, "ok"))
-    checks.append(("doppia faccia solo su stoffa e pelle",
-                   True,
-                   ", ".join(m for m, d in zip(base["materials"],
-                                               base["double_sided"]) if d)))
-    checks.append(("nessuna animazione/skin (asset statico)", base["anims"] == 0,
-                   f"{base['anims']} clip"))
+    checks.append(("vertici finiti e UV/normali presenti in tutti i LOD",
+                   all(r["finite"] and r["uv_normals"] for r in rows), "verificato"))
+    checks.append(("texture incorporate in tutti i LOD",
+                   all(r["images"] > 0 and r["embedded_images"] for r in rows),
+                   "GLB autonomi"))
+    checks.append(("nessuna mappa emissive", not any(r["has_emissive"] for r in rows),
+                   "assente" if not any(r["has_emissive"] for r in rows) else "presente"))
+    checks.append(("LOD progressivamente piu' leggeri",
+                   rows[0]["tris"] > rows[1]["tris"] > rows[2]["tris"] > 0,
+                   " > ".join(str(r["tris"]) for r in rows)))
+    same_mats = all(set(r["materials"]) == set(base["materials"]) for r in rows[1:])
+    checks.append(("stessi materiali in tutti i LOD", same_mats,
+                   "ok" if same_mats else "materiali differenti"))
+    expected_double = {"DRESS1_Canvas", "DRESS1_Wool", "DRESS1_Linen"}
+    actual_double = {m for m, d in zip(base["materials"], base["double_sided"]) if d}
+    checks.append(("doppia faccia sui materiali di stoffa", actual_double == expected_double,
+                   ", ".join(sorted(actual_double))))
+    checks.append(("nessuna animazione o skin (asset statico)",
+                   all(r["anims"] == 0 and r["skins"] == 0 for r in rows),
+                   f"{base['anims']} clip, {base['skins']} skin"))
+    checks.append(("nessuna estensione glTF richiesta",
+                   all(not r["extensions"] for r in rows),
+                   ", ".join(base["extensions"]) or "nessuna"))
+
+    js = read_glb(os.path.join(REPO, "DRESS1.glb"))[0]
+    textured = {"DRESS1_Linen", "DRESS1_Wool", "DRESS1_Canvas", "DRESS1_Skin"}
+    pbr_ok = all(
+        "baseColorTexture" in m.get("pbrMetallicRoughness", {}) and
+        "metallicRoughnessTexture" in m.get("pbrMetallicRoughness", {}) and
+        "normalTexture" in m and "occlusionTexture" in m
+        for m in js.get("materials", []) if m.get("name") in textured
+    ) and textured.issubset(set(base["materials"]))
+    checks.append(("base color, normal, ORM e AO sulle superfici PBR", pbr_ok,
+                   "4 materiali testurizzati"))
 
     lines = ["# QA DRESS1", "",
              "Generato da `tools/06_validate.py` (parser glTF senza Blender).", "",
@@ -206,6 +238,8 @@ def main():
     print("[qa] scritto", OUT)
     for label, ok, detail in checks:
         print(f"[qa] {'OK ' if ok else 'KO '} {label}: {detail}")
+    if not all(ok for _, ok, _ in checks):
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

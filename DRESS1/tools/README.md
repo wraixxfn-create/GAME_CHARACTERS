@@ -1,68 +1,58 @@
-# DRESS1 — pipeline
+# DRESS1 — pipeline riproducibile
 
-Sei script, tutti eseguiti dentro Blender tramite il modulo `bpy` (4.5 LTS).
-Nessuna GUI, nessuna dipendenza oltre a numpy e Pillow (incluse nel pacchetto
-`bpy`).
+Gli script usano Python con `bpy` di Blender 4.5 LTS e numpy. I file temporanei
+restano fuori dal repository nella directory `DRESS1_WORK`.
 
-| script | input | output | tempo |
-|---|---|---|---|
-| `01_build.py` | — (geometria procedurale) | `$DRESS1_WORK/build/DRESS1_build.blend` | ~18 s |
-| `02_optimize.py` | build | `opt/DRESS1_opt.blend` + `LOD1/LOD2` | ~18 s |
-| `03_material.py` | opt | `mat/DRESS1_mat.blend` + LOD con materiali | ~40 s (bake AO) |
-| `04_export.py` | mat | `DRESS1.blend`, `.glb` x3, `.fbx`, `DRESS1_tex/` | ~27 s |
-| `05_preview.py` | `DRESS1.blend` | `preview/*.png` | ~15 min (Cycles CPU) |
-| `06_validate.py` | i `.glb` | `QA.md` | < 1 s |
-
-`06_validate.py` gira anche **senza Blender**: è Python puro con un parser
-minimo di glTF, così la QA si può mettere in CI.
-
-## Variabili
-
-| nome | default | significato |
+| Script | Input | Output |
 |---|---|---|
-| `DRESS1_WORK` | `/tmp/dress1_work` | cartella di lavoro (fuori dal repo) |
+| `01_build.py` | Parametri nel sorgente | Mesh procedurale grezza in `build/` |
+| `02_optimize.py` | Build | LOD0 ottimizzato, UV e gruppo `keep` in `opt/` |
+| `03_material.py` | LOD0 ottimizzato | Materiali, texture e bake AO in `mat/` |
+| `04_export.py` | LOD0 con materiali | `.blend`, GLB LOD0/1/2, FBX e PNG nel repo |
+| `05_preview.py` | `DRESS1.blend` | Render in `preview/` |
+| `06_validate.py` | Tre GLB | `QA.md`; esce con errore se un controllo fallisce |
 
-## Come si rilancia tutto
+## Esecuzione
+
+Dalla cartella `DRESS1/`, usando un interprete Python con `bpy` disponibile:
 
 ```bash
 export DRESS1_WORK=/tmp/dress1_work
-B=/path/to/python/con/bpy          # interprete con il modulo bpy installato
-
-for f in tools/01_build.py tools/02_optimize.py tools/03_material.py \
-         tools/04_export.py tools/06_validate.py; do
-    "$B" "$f"
+B=/percorso/python-con-bpy
+for script in 01_build 02_optimize 03_material 04_export; do
+    "$B" "tools/$script.py"
 done
-"$B" tools/05_preview.py           # opzionale: render lunghi
+python3 tools/06_validate.py
+"$B" tests/test_geometry.py
+"$B" tests/test_exports.py
+"$B" tools/05_preview.py  # opzionale: render Cycles su CPU
 ```
 
-## Scelte che vale la pena conoscere
+### Parametri opzionali
 
-**Una superficie per tutto.** `01_build.py` espone
-`surface(angolo, quota, strato)`; gonna, falde, scialli, staffa e ricami
-leggono tutti da lì con un offset di raggio per strato. È quello che evita le
-compenetrazioni: se si sposta una quota in `PROFILE`, si muove tutto insieme.
+| Variabile | Default | Uso |
+|---|---:|---|
+| `DRESS1_WORK` | `/tmp/dress1_work` | Cartella temporanea della pipeline |
+| `DRESS1_AO_SIZE` | `1024` | Lato in pixel della mappa AO |
+| `DRESS1_AO_SAMPLES` | `32` | Campioni Cycles per l'AO |
+| `DRESS1_PREVIEW_SAMPLES` | `32` | Campioni di ciascun render |
+| `DRESS1_PREVIEW_SCALE` | `1` | Scala delle anteprime, tra `0.25` e `1` |
 
-**Split prima della decimation.** A 60k triangoli un ricamo dorato largo 3 mm
-sparisce. `02_optimize.py` divide le facce in *stoffa* e *dettagli* usando il
-vertex group `keep` creato in `01_build.py` e le decima con budget separati
-(52k + 26k). I dettagli sono il 30% dei triangoli su meno del 10% della
-superficie.
+## Scelte importanti
 
-**Immagini: sempre per il disco.** Un'immagine `generated` con i pixel scritti
-via `foreach_set` non sopravvive al salvataggio (si ricarica nera). Le mappe
-vengono quindi salvate su PNG, ricaricate come `FILE` e impacchettate.
-
-**Uno strato per lembo, mai due uguali.** Dove due superfici condividono lo
-stesso offset il render alterna i due pezzi: il bordo si legge come una fila di
-dentini. La mappa `LAYER` in `01_build.py` assegna quindi un offset diverso a
-ogni falda e a ogni scialle (`lapB` 26 mm, `lap` 34, `lap2` 46, `lap3` 52,
-`drape` 56, `drape2` 62, `trim` 68, `strap` 74). Se si aggiunge un lembo, gli
-si dà uno strato proprio.
-
-**Le falde seguono le pieghe.** `skirt_disp(a, z)` restituisce lo spostamento
-radiale della gonna in quel punto; i lembi lo sommano al proprio offset, così
-si appoggiano alla superficie pieghettata invece di attraversarla.
-
-**Metalli a tinta piena.** Anello e ricami non hanno mappe: sono valori
-uniformi. Su un anello da 6 cm una texture a chiazze si legge come
-camouflage, e l'asset pesa meno.
+- **Pieghe continue:** `skirt_disp(a, z)` usa la distanza positiva fra vita e
+  orlo ed è condivisa con le falde. Le armoniche intere sono continue alla
+  cucitura; i solchi delle falde sono geometria, non linee dipinte.
+- **Spessore dei ricami:** i motivi laterali vengono proiettati sul pannello e
+  sollevati oltre il suo spessore di 3,2 mm. La staffa e i suoi simboli usano
+  la stessa superficie curva.
+- **Budget separati:** il gruppo `keep` protegge nastri, fibbia e ricami. Il
+  LOD0 usa circa 52k triangoli per stoffa e anatomia e 26k per i dettagli; i
+  LOD successivi decimano i due gruppi separatamente (25%/55% e 8%/20%).
+- **AO:** il bake usa la UV comune e prepara un nodo immagine attivo in ogni
+  slot materiale. Le texture vengono salvate su disco, ricaricate e
+  impacchettate nel `.blend`; i GLB sono autonomi.
+- **Test:** `test_geometry.py` controlla le superfici procedurali e le distanze
+  dei ricami dalla stoffa; `test_exports.py` reimporta GLB e FBX e controlla la
+  visibilità della staffa e la presenza dei ricami in ogni LOD. La QA dei GLB
+  gira anche con Python standard, senza Blender.

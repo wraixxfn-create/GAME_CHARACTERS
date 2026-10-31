@@ -6,17 +6,18 @@ Genera, a partire dal `.blend` con i materiali:
 * `DRESS1.glb`          glTF 2.0 binario, LOD0
 * `DRESS1_LOD1.glb`     35% dei triangoli
 * `DRESS1_LOD2.glb`     12% dei triangoli
-* `DRESS1.fbx`          FBX binary, unita' metriche, asse Y
+* `DRESS1.fbx`          FBX binary, unita' metriche, Z-up, fronte -Y
 * `DRESS1_tex/`         le mappe esportate singolarmente (per chi non usa glb)
 
-Tutti gli export sono in metri, Y-up, origine ai piedi (z=0 al pavimento).
+Gli export sono in metri e hanno origine ai piedi. I GLB sono Y-up; il FBX
+usa Z-up e fronte -Y, come la scena Blender.
 """
 
 from __future__ import annotations
 
 import math
+import importlib.util
 import os
-import shutil
 import sys
 
 import bpy
@@ -128,31 +129,36 @@ def main():
 
     # --- texture sciolte
     texdir = os.path.join(REPO, "DRESS1_tex")
-    if os.path.isdir(texdir):
-        shutil.rmtree(texdir)
-    export_textures(ob, texdir)
-    print("[export] texture:", len(os.listdir(texdir)))
+    # Sovrascrive solo le mappe generate, senza cancellare eventuali file
+    # aggiunti dall'utente alla cartella delle texture.
+    written = export_textures(ob, texdir)
+    print("[export] texture:", len(written))
 
-    # --- LOD1 / LOD2 glb: decimati dal LOD0 gia' testurizzato, cosi'
-    # materiali e mappe restano gli stessi per costruzione
-    for tag, ratio, tex_scale in (("LOD1", 0.35, 0.5), ("LOD2", 0.12, 0.25)):
+    # --- LOD: tessuto e dettagli conservano budget separati. Una decimazione
+    # globale schiacciava in particolare le linee dorate larghe pochi mm.
+    spec = importlib.util.spec_from_file_location(
+        "dress1_optimize", os.path.join(os.path.dirname(__file__), "02_optimize.py"))
+    opt = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(opt)
+    for tag, cloth_ratio, trim_ratio, tex_scale in (
+            ("LOD1", 0.25, 0.55, 0.50),
+            ("LOD2", 0.08, 0.20, 0.25)):
         bpy.ops.wm.open_mainfile(filepath=blend)
         o = bpy.data.objects["DRESS1"]
         prepare_scene(o)
-        # i LOD usano mappe piu' piccole: e' pratica standard e tiene i file
-        # autonomi senza ripetere 12 texture a piena risoluzione
         for img in bpy.data.images:
             if img.size[0] > 8:
                 w = max(64, int(img.size[0] * tex_scale))
                 h = max(64, int(img.size[1] * tex_scale))
                 img.scale(w, h)
-        target = int(tri_count(o) * ratio)
-        m = o.modifiers.new("Decimate", "DECIMATE")
-        m.decimate_type = "COLLAPSE"
-        m.ratio = max(0.001, target / max(tri_count(o), 1))
-        m.use_collapse_triangulate = True
+        if o.vertex_groups.get("keep") is None:
+            raise RuntimeError("Manca il gruppo 'keep' per preservare i ricami nei LOD")
+        cloth, trim = opt.split_by_group(o)
+        opt.decimate(cloth, int(tri_count(cloth) * cloth_ratio))
+        opt.decimate(trim, int(tri_count(trim) * trim_ratio))
+        bpy.data.objects.remove(o, do_unlink=True)
+        o = opt.join_objects([cloth, trim], "DRESS1")
         bpy.context.view_layer.objects.active = o
-        bpy.ops.object.modifier_apply(modifier=m.name)
         bpy.ops.object.shade_smooth_by_angle(angle=math.radians(46.0))
         path = export_gltf(os.path.join(REPO, f"DRESS1_{tag}.glb"), o)
         print("[export]", path, f"{tri_count(o)} tri",
