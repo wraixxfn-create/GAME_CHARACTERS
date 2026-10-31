@@ -6,6 +6,7 @@ Modelli di personaggi per videogiochi, lavorati per essere pronti al motore.
 |---|---|---|
 | **BOSS1** — Demone Cornuto | game-ready: 80k tri, rig 34 ossa, 5 animazioni, PBR 2K + AO, LOD1/LOD2, scala 2,90 m | [BOSS1/](BOSS1/) → `BOSS1.blend`, `BOSS1.glb`, `BOSS1.fbx`, `BOSS1_LOD1.glb`, `BOSS1_LOD2.glb` |
 | **ELFO1** — Elfo Runico | game-ready: 55k tri, rig 43 ossa, 5 animazioni, PBR 2K + AO + rune emissive, LOD1/LOD2, scala 1,85 m | [ELFO1/](ELFO1/) → `ELFO1.blend`, `ELFO1.glb`, `ELFO1.fbx`, `ELFO1_LOD1.glb`, `ELFO1_LOD2.glb` |
+| **DRESS1** — Gonna cerimoniale | game-ready: 78k tri, 6 materiali PBR con AO bakeata, LOD1/LOD2, scala 1,09 m, ricostruita da zero dal concept | [DRESS1/](DRESS1/) → `DRESS1.blend`, `DRESS1.glb`, `DRESS1.fbx`, `DRESS1_LOD1.glb`, `DRESS1_LOD2.glb` |
 
 ## BOSS1 in breve
 
@@ -24,6 +25,25 @@ Modelli di personaggi per videogiochi, lavorati per essere pronti al motore.
 
 Confronto della densita' di triangoli tra la v1 (60k uniformi) e questa
 versione (80k adattivi): `BOSS1/preview/detail_compare.png`.
+
+## DRESS1 in breve
+
+- ricostruita **da zero** sul concept dell'utente: il `.blend` di partenza era
+  un fermo immagine del disegno (schiena piatta, piedi senza dita, tre isole di
+  geometria volante), non un capo indossabile
+- **pieghe geometriche a coltello** (26 sulla gonna, 13-15 sulle falde) al
+  posto delle pieghe dipinte nella texture
+- 6 materiali PBR glTF-safe: lino, lana, ottone, oro "foglia", tela, pelle,
+  con **AO bakeata su Cycles** e mappe procedurali generate in numpy
+- dettagli in **geometria**: anello d'ottone, catena di simboli sulla staffa,
+  rune a zig-zag sugli scialli, fasciature delle caviglie, sandali con suola
+- 475k → **78.000** triangoli con split stoffa/dettagli (i ricami da 3 mm
+  hanno un budget tutto loro), LOD1 27k e LOD2 9,3k
+- scala metrica (**1,089 m**), origine ai piedi, Y-up, nessuna skin
+- QA automatica in [`DRESS1/QA.md`](DRESS1/QA.md), pipeline in
+  `DRESS1/tools/`
+
+![DRESS1](DRESS1/preview/hero_front.png)
 
 ## ELFO1 in breve
 
