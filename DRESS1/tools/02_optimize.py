@@ -1,13 +1,14 @@
 """DRESS1 — ottimizzazione per il motore.
 
-Il capo nasce a ~480k triangoli (griglie uniformi, comodo da modellare) e deve
+Il capo nasce a ~514k triangoli (griglie uniformi, comodo da modellare) e deve
 uscire a misura di motore. La decimation non e' uniforme: i dettagli sottili —
 ricami dorati da 3 mm, nastri, staffa, fasciature — hanno un budget tutto loro,
 altrimenti a 60k triangoli spariscono.
 
 Strategia: si dividono le facce in **stoffa** e **dettagli** usando il vertex
 group ``keep`` creato da ``01_build.py``, ognuna viene decimata col proprio
-rapporto, poi si riuniscono. Alla fine UV, normali pesate e due LOD.
+rapporto, poi si riuniscono. Il gruppo `keep` rimane nella mesh per permettere
+all'export di generare i LOD con budget separati.
 """
 
 from __future__ import annotations
@@ -18,7 +19,6 @@ import sys
 
 import bpy  # noqa: E402
 import bmesh
-from mathutils import Vector
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from common import (apply_modifiers, ensure_dir, tri_count, uv_unwrap,
@@ -26,8 +26,6 @@ from common import (apply_modifiers, ensure_dir, tri_count, uv_unwrap,
 
 CLOTH_TARGET = 52000     # triangoli di stoffa (griglie, pieghe, gambe, piedi)
 TRIM_TARGET = 26000      # triangoli dei dettagli (oro, staffa, fasciature)
-LOD1_RATIO = 0.35
-LOD2_RATIO = 0.12
 
 
 # --------------------------------------------------------------------------
@@ -64,6 +62,11 @@ def split_by_group(ob, group_name="keep"):
             me.uv_layers.new(name="UVMap")
         new = bpy.data.objects.new(f"{ob.name}_{tag}", me)
         bpy.context.scene.collection.objects.link(new)
+        if want:
+            # Conserva il gruppo anche dopo lo split/join: l'export crea LOD
+            # con budget separati e non deve distruggere i ricami sottili.
+            group = new.vertex_groups.new(name=group_name)
+            group.add(list(range(len(me.vertices))), 1.0, "REPLACE")
         meshes.append(new)
     return meshes
 
@@ -107,7 +110,7 @@ def triangulate(ob):
 
 
 def finalize(ob):
-    """UV, spigoli vivi, normali pesate."""
+    """UV e normali smussate in base all'angolo."""
     uv_unwrap(ob, angle=58.0, margin=0.0012)
     bpy.context.view_layer.objects.active = ob
     bpy.ops.object.select_all(action="DESELECT")
@@ -148,18 +151,7 @@ def main():
     bpy.ops.wm.save_as_mainfile(filepath=path0)
     print("[opt] salvato", path0)
 
-    for tag, ratio in (("LOD1", LOD1_RATIO), ("LOD2", LOD2_RATIO)):
-        bpy.ops.wm.open_mainfile(filepath=path0)
-        o = bpy.data.objects["DRESS1"]
-        decimate(o, int(tri_count(o) * ratio))
-        bpy.context.view_layer.objects.active = o
-        try:
-            bpy.ops.object.shade_smooth_by_angle(angle=math.radians(46.0))
-        except Exception:
-            pass
-        p = os.path.join(out, f"DRESS1_{tag}.blend")
-        bpy.ops.wm.save_as_mainfile(filepath=p)
-        print(f"[opt] {tag}: {tri_count(o)} triangoli -> {p}")
+
 
 
 if __name__ == "__main__":

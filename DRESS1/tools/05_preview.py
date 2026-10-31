@@ -31,20 +31,17 @@ BG = (0.055, 0.058, 0.066)
 
 
 def studio(target=(0, 0, 0.62), scale=1.0):
-    """Rig di luce: key calda da sinistra, fill freddo, rim posteriore."""
+    """Luce radente morbida: evidenzia pieghe, cuciture e metallo."""
     L = []
-    L.append(add_area("Key", (2.1 * scale, -2.6 * scale, 2.3 * scale), target,
-                      energy=330 * scale ** 2, size=2.6 * scale,
-                      color=(1.0, 0.96, 0.90)))
-    L.append(add_area("Fill", (-2.7 * scale, -1.8 * scale, 1.1 * scale), target,
-                      energy=95 * scale ** 2, size=3.4 * scale,
-                      color=(0.82, 0.88, 1.0)))
-    L.append(add_area("Rim", (-0.8 * scale, 2.8 * scale, 2.2 * scale), target,
-                      energy=230 * scale ** 2, size=2.0 * scale,
-                      color=(1.0, 0.94, 0.86)))
-    L.append(add_area("Top", (0.0, 0.4 * scale, 3.3 * scale), target,
-                      energy=120 * scale ** 2, size=2.4 * scale,
-                      color=(1.0, 0.98, 0.94)))
+    L.append(add_area("Key", (1.7 * scale, -2.5 * scale, 2.2 * scale), target,
+                      energy=300 * scale ** 2, size=1.6 * scale,
+                      color=(1.0, 0.95, 0.90)))
+    L.append(add_area("Fill", (-2.3 * scale, -1.3 * scale, 1.0 * scale), target,
+                      energy=70 * scale ** 2, size=2.6 * scale,
+                      color=(0.87, 0.91, 1.0)))
+    L.append(add_area("Rim", (-0.8 * scale, 2.5 * scale, 2.0 * scale), target,
+                      energy=150 * scale ** 2, size=1.8 * scale,
+                      color=(1.0, 0.92, 0.82)))
     return L
 
 
@@ -78,50 +75,58 @@ def frame(cam, angle_deg, dist, target, height):
         "-Z", "Y")
 
 
+def preview_to(path, res, transparent=False):
+    # Consente una prova rapida senza cambiare la scena o gli export.
+    scale = max(0.25, min(1.0, float(os.environ.get("DRESS1_PREVIEW_SCALE", "1"))))
+    samples = max(4, int(os.environ.get("DRESS1_PREVIEW_SAMPLES", "32")))
+    size = (round(res[0] * scale), round(res[1] * scale))
+    return render_to(path, res=size, samples=samples, transparent=transparent)
+
+
 def main():
     ensure_dir(PREVIEW)
     src = os.path.join(REPO, "DRESS1.blend")
     ob = load(src)
     sc = bpy.context.scene
-    setup_world(0.75, BG)
+    setup_world(0.45, BG)
     studio(target=(0, 0, 0.62))
     ground(-0.004)
-    cam = add_camera("Hero", (0, -3.3, 0.78), (0, 0, 0.58), lens=88)
+    cam = add_camera("Hero", (0, -3.3, 0.72), (0, 0, 0.55), lens=88)
     sc.camera = cam
 
-    frame(cam, 0, 3.3, (0, 0, 0.58), 0.78)
-    render_to(os.path.join(PREVIEW, "hero_front.png"), res=(900, 1240),
-              samples=96, transparent=False)
+    frame(cam, 0, 3.3, (0, 0, 0.55), 0.72)
+    preview_to(os.path.join(PREVIEW, "hero_front.png"), res=(900, 1240),
+              transparent=False)
 
-    frame(cam, 34, 3.3, (0, 0, 0.58), 0.80)
-    render_to(os.path.join(PREVIEW, "hero_three.png"), res=(900, 1240),
-              samples=96, transparent=False)
+    frame(cam, 34, 3.3, (0, 0, 0.55), 0.74)
+    preview_to(os.path.join(PREVIEW, "hero_three.png"), res=(900, 1240),
+              transparent=False)
 
     # primo piano vita
     cam.data.lens = 110
     frame(cam, 22, 1.05, (0.0, 0, 0.96), 1.06)
-    render_to(os.path.join(PREVIEW, "hero_waist.png"), res=(1200, 1000),
-              samples=104, transparent=False)
+    preview_to(os.path.join(PREVIEW, "hero_waist.png"), res=(1200, 1000),
+              transparent=False)
 
     # primo piano piedi
-    cam.data.lens = 95
-    frame(cam, 18, 0.95, (0, 0, 0.16), 0.36)
-    render_to(os.path.join(PREVIEW, "hero_feet.png"), res=(1200, 900),
-              samples=104, transparent=False)
+    cam.data.lens = 70
+    frame(cam, 18, 1.35, (0, -0.04, 0.14), 0.34)
+    preview_to(os.path.join(PREVIEW, "hero_feet.png"), res=(1200, 900),
+              transparent=False)
 
     # dietro
     cam.data.lens = 88
-    frame(cam, 180, 3.3, (0, 0, 0.58), 0.80)
-    render_to(os.path.join(PREVIEW, "hero_back.png"), res=(900, 1240),
-              samples=80, transparent=False)
+    frame(cam, 180, 3.3, (0, 0, 0.55), 0.74)
+    preview_to(os.path.join(PREVIEW, "hero_back.png"), res=(900, 1240),
+              transparent=False)
 
     # turnaround: quattro viste su fondo neutro, poi affiancate in numpy
     tmp = ensure_dir(os.path.join(work_dir(), "preview"))
     files = []
     for tag, ang in (("f", 0), ("s", 90), ("b", 180), ("q", 270)):
-        frame(cam, ang, 3.4, (0, 0, 0.58), 0.78)
+        frame(cam, ang, 3.4, (0, 0, 0.55), 0.72)
         p = os.path.join(tmp, f"turn_{tag}.png")
-        render_to(p, res=(620, 1000), samples=64, transparent=True)
+        preview_to(p, res=(620, 1000), transparent=True)
         files.append(p)
     compose_turnaround(files, os.path.join(PREVIEW, "turnaround.png"))
 
