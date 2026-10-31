@@ -140,9 +140,9 @@ def main():
         "dress1_optimize", os.path.join(os.path.dirname(__file__), "02_optimize.py"))
     opt = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(opt)
-    for tag, cloth_ratio, trim_ratio, tex_scale in (
-            ("LOD1", 0.25, 0.55, 0.50),
-            ("LOD2", 0.08, 0.20, 0.25)):
+    for tag, cloth_ratio, mid_ratio, trim_ratio, tex_scale in (
+            ("LOD1", 0.25, 0.50, 0.58, 0.50),
+            ("LOD2", 0.08, 0.18, 0.22, 0.25)):
         bpy.ops.wm.open_mainfile(filepath=blend)
         o = bpy.data.objects["DRESS1"]
         prepare_scene(o)
@@ -153,11 +153,12 @@ def main():
                 img.scale(w, h)
         if o.vertex_groups.get("keep") is None:
             raise RuntimeError("Manca il gruppo 'keep' per preservare i ricami nei LOD")
-        cloth, trim = opt.split_by_group(o)
+        cloth, mid, trim = opt.split_by_group(o)
         opt.decimate(cloth, int(tri_count(cloth) * cloth_ratio))
+        opt.decimate(mid, int(tri_count(mid) * mid_ratio))
         opt.decimate(trim, int(tri_count(trim) * trim_ratio))
         bpy.data.objects.remove(o, do_unlink=True)
-        o = opt.join_objects([cloth, trim], "DRESS1")
+        o = opt.join_objects([cloth, mid, trim], "DRESS1")
         bpy.context.view_layer.objects.active = o
         bpy.ops.object.shade_smooth_by_angle(angle=math.radians(46.0))
         path = export_gltf(os.path.join(REPO, f"DRESS1_{tag}.glb"), o)

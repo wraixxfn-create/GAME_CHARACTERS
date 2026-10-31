@@ -24,34 +24,48 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from common import (apply_modifiers, ensure_dir, tri_count, uv_unwrap,
                     work_dir)
 
-CLOTH_TARGET = 52000     # triangoli di stoffa (griglie, pieghe, gambe, piedi)
-TRIM_TARGET = 26000      # triangoli dei dettagli (oro, staffa, fasciature)
+CLOTH_TARGET = 50000     # triangoli di stoffa (griglie, pieghe, gambe, piedi)
+MID_TARGET = 11000       # stoffa con bordi vivi (teli in croce, cintura)
+TRIM_TARGET = 17000      # triangoli dei dettagli (oro, staffa, fasciature)
 
 
 # --------------------------------------------------------------------------
 # split / join
 # --------------------------------------------------------------------------
 
-def split_by_group(ob, group_name="keep"):
-    """Divide l'oggetto in (stoffa, dettagli) secondo il vertex group."""
-    gi = ob.vertex_groups[group_name].index
+def _weights(ob, group_name):
+    vg = ob.vertex_groups.get(group_name)
+    if vg is None:
+        return [0.0] * len(ob.data.vertices)
+    gi = vg.index
     weights = [0.0] * len(ob.data.vertices)
     for v in ob.data.vertices:
         for g in v.groups:
             if g.group == gi:
                 weights[v.index] = g.weight
-    keep = [w > 0.5 for w in weights]
+    return weights
+
+
+def split_by_group(ob, group_name="keep", mid_name="mid"):
+    """Divide l'oggetto in tre livelli: stoffa, stoffa "media", dettagli.
+
+    Un unico taglio non basta: la gonna e le falde reggono decimazioni forti,
+    mentre i teli in croce in vita hanno bordi vivi e i ricami dorati sono
+    larghi pochi millimetri. Ogni livello ha il suo budget.
+    """
+    keep = [w > 0.5 for w in _weights(ob, group_name)]
+    mid = [w > 0.5 for w in _weights(ob, mid_name)]
+    tag_of = ["keep" if k else ("mid" if m else "cloth")
+              for k, m in zip(keep, mid)]
 
     meshes = []
-    for tag, want in (("cloth", False), ("trim", True)):
+    for tag in ("cloth", "mid", "keep"):
         bm = bmesh.new()
         bm.from_mesh(ob.data)
         bm.faces.ensure_lookup_table()
         layer_uv = bm.loops.layers.uv.active
-        drop = []
-        for f in bm.faces:
-            if all(keep[v.index] for v in f.verts) != want:
-                drop.append(f)
+        drop = [f for f in bm.faces
+                if any(tag_of[v.index] != tag for v in f.verts)]
         bmesh.ops.delete(bm, geom=drop, context="FACES")
         me = bpy.data.meshes.new(f"{ob.name}_{tag}")
         bm.to_mesh(me)
@@ -62,10 +76,10 @@ def split_by_group(ob, group_name="keep"):
             me.uv_layers.new(name="UVMap")
         new = bpy.data.objects.new(f"{ob.name}_{tag}", me)
         bpy.context.scene.collection.objects.link(new)
-        if want:
-            # Conserva il gruppo anche dopo lo split/join: l'export crea LOD
-            # con budget separati e non deve distruggere i ricami sottili.
-            group = new.vertex_groups.new(name=group_name)
+        # I gruppi restano nella mesh: l'export dei LOD li riusa.
+        if tag != "cloth":
+            group = new.vertex_groups.new(
+                name=group_name if tag == "keep" else mid_name)
             group.add(list(range(len(me.vertices))), 1.0, "REPLACE")
         meshes.append(new)
     return meshes
@@ -133,16 +147,18 @@ def main():
           f"{len(ob.data.vertices)} vertici")
 
     triangulate(ob)
-    cloth, trim = split_by_group(ob)
-    print(f"[opt] stoffa {tri_count(cloth)} tri, dettagli {tri_count(trim)} tri")
+    cloth, mid, trim = split_by_group(ob)
+    print(f"[opt] stoffa {tri_count(cloth)} tri, media {tri_count(mid)} tri, "
+          f"dettagli {tri_count(trim)} tri")
 
     decimate(cloth, CLOTH_TARGET)
+    decimate(mid, MID_TARGET)
     decimate(trim, TRIM_TARGET)
     print(f"[opt] dopo decimation: stoffa {tri_count(cloth)}, "
-          f"dettagli {tri_count(trim)}")
+          f"media {tri_count(mid)}, dettagli {tri_count(trim)}")
 
     bpy.data.objects.remove(ob, do_unlink=True)
-    ob = join_objects([cloth, trim], "DRESS1")
+    ob = join_objects([cloth, mid, trim], "DRESS1")
     finalize(ob)
     print(f"[opt] LOD0: {tri_count(ob)} triangoli, {len(ob.data.vertices)} vertici, "
           f"{len(ob.data.materials)} materiali")

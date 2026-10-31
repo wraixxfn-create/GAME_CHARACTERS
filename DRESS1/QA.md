@@ -4,21 +4,21 @@ Generato da `tools/06_validate.py` (parser glTF senza Blender).
 
 | file | tris | verts | materiali | mappe | MB | doppia faccia |
 |---|---|---|---|---|---|---|
-| `DRESS1.glb` | 77999 | 55218 | 6 | 12 | 14.15 | si |
-| `DRESS1_LOD1.glb` | 27298 | 24332 | 6 | 12 | 4.40 | si |
-| `DRESS1_LOD2.glb` | 9358 | 10357 | 6 | 12 | 1.36 | si |
+| `DRESS1.glb` | 77999 | 62197 | 6 | 12 | 14.12 | si |
+| `DRESS1_LOD1.glb` | 28737 | 29323 | 6 | 12 | 4.50 | si |
+| `DRESS1_LOD2.glb` | 10135 | 12349 | 6 | 12 | 1.43 | si |
 
 ## Controlli
 
-- [x] scala metrica (altezza 0,9-1,5 m) — 1.099 m
-- [x] origine ai piedi (min |y| < 8 mm) — -3.0 mm
-- [x] centrato sull'asse X (|x| < 20 mm) — +0.3 mm
+- [x] scala metrica (altezza 0,9-1,5 m) — 1.078 m
+- [x] origine ai piedi (min |y| < 8 mm) — +0.8 mm
+- [x] centrato sull'asse X (|x| < 20 mm) — +3.1 mm
 - [x] budget LOD0 (massimo 80.000 triangoli) — 77999
 - [x] sei materiali — 6
 - [x] vertici finiti e UV/normali presenti in tutti i LOD — verificato
 - [x] texture incorporate in tutti i LOD — GLB autonomi
 - [x] nessuna mappa emissive — assente
-- [x] LOD progressivamente piu' leggeri — 77999 > 27298 > 9358
+- [x] LOD progressivamente piu' leggeri — 77999 > 28737 > 10135
 - [x] stessi materiali in tutti i LOD — ok
 - [x] doppia faccia sui materiali di stoffa — DRESS1_Canvas, DRESS1_Linen, DRESS1_Wool
 - [x] nessuna animazione o skin (asset statico) — 0 clip, 0 skin
@@ -38,7 +38,7 @@ Generato da `tools/06_validate.py` (parser glTF senza Blender).
 
 ## Quote
 
-- altezza totale: **109.9 cm**
-- larghezza (X): **57.6 cm**
-- profondita' (Z glTF): **51.7 cm**
+- altezza totale: **107.8 cm**
+- larghezza (X): **54.7 cm**
+- profondita' (Z glTF): **47.0 cm**
 - estensioni usate: nessuna

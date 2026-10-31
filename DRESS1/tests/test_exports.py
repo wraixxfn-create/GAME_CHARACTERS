@@ -79,7 +79,15 @@ class ExportTests(unittest.TestCase):
                                 for im in bpy.data.images))
             coordinates = [ob.matrix_world @ v.co for v in ob.data.vertices]
             height = max(v.z for v in coordinates) - min(v.z for v in coordinates)
-            self.assertAlmostEqual(height, 1.099, delta=0.015)
+            # Confronta con il GLB dello stesso LOD invece di una quota fissa:
+            # la verifica resta valida anche quando il capo viene riproporzionato.
+            bpy.ops.wm.read_factory_settings(use_empty=True)
+            bpy.ops.import_scene.gltf(filepath=str(ROOT / "DRESS1.glb"))
+            glb = only_mesh()
+            zs = [(glb.matrix_world @ v.co).z for v in glb.data.vertices]
+            self.assertAlmostEqual(height, max(zs) - min(zs), delta=0.004)
+            self.assertGreater(height, 1.0)
+            self.assertLess(height, 1.2)
 
 
 if __name__ == "__main__":

@@ -37,6 +37,52 @@ class ShapeTests(unittest.TestCase):
         self.assertLess(dress.STRAP_TIP_Z, dress.STRAP_SHOULDER_Z)
         self.assertGreater(dress.strap_halfwidth(dress.STRAP_SHOULDER_Z), 0.02)
 
+    def test_strap_tip_is_lobed_not_a_plain_v(self):
+        # Nel disegno la punta ha un intaglio al centro: il centro sta piu' in
+        # alto dei due lobi, e gli angoli esterni risalgono verso i lembi.
+        center = dress.strap_bottom_z(0.0)
+        lobe = dress.strap_bottom_z(0.30)
+        self.assertGreater(center, lobe + 0.004)
+        self.assertGreater(dress.strap_bottom_z(1.0), dress.strap_bottom_z(0.5))
+
+    def test_sandals_rest_on_the_foot_surface(self):
+        # Le fascette sono generate sulla superficie del piede: se la formula
+        # si scolla dalla mesh, i cinturini affondano o restano sospesi.
+        for y in (-0.04, -0.10, -0.16):
+            half = dress.foot_halfwidth(y)
+            hz, cy = dress.foot_center(y)
+            top = dress.foot_surface(0.0, y)
+            self.assertAlmostEqual(top.z, cy + 0.5 * hz, places=4)
+            self.assertLess(dress.foot_surface(half, y).z, top.z)
+            self.assertGreaterEqual(dress.foot_surface(-half, y).z, 0.0)
+
+
+class WaistTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        dress.reset_scene()
+        cls.sash = dress.build_sash()
+
+    def test_crossed_bands_wrap_all_the_way_round(self):
+        # I teli in croce non sono strisce appoggiate sul davanti: girano
+        # attorno alla vita e si infilano dietro, come un nastro avvolto.
+        bands = [o for o in self.sash if o.name.startswith("Sash_Cross")]
+        self.assertGreaterEqual(len(bands), 2)
+        for ob in bands[:2]:
+            ys = [v.co.y for v in ob.data.vertices]
+            self.assertLess(min(ys), -0.10)   # davanti
+            self.assertGreater(max(ys), 0.10)  # dietro
+            zs = [v.co.z for v in ob.data.vertices]
+            self.assertGreater(max(zs) - min(zs), 0.05)
+
+    def test_band_ends_taper_and_hide_under_the_waist(self):
+        band = [o for o in self.sash if o.name == "Sash_CrossA"][0]
+        # il telo e' piu' strettamente avvolto alle estremita' che al centro
+        front = [v.co for v in band.data.vertices if abs(v.co.x) < 0.02
+                 and v.co.y < 0]
+        self.assertTrue(front)
+        self.assertLess(max(abs(p.x) for p in front), 0.03)
+
 
 class LayerTests(unittest.TestCase):
     @classmethod
