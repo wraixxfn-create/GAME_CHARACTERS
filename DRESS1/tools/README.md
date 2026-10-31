@@ -43,12 +43,19 @@ python3 tools/06_validate.py
 - **Pieghe continue:** `skirt_disp(a, z)` usa la distanza positiva fra vita e
   orlo ed è condivisa con le falde. Le armoniche intere sono continue alla
   cucitura; i solchi delle falde sono geometria, non linee dipinte.
+- **Teli in vita:** `sash_wrap` stende un nastro fra due angoli con estremità
+  assottigliate e salita ripida al centro, così l'incrocio davanti forma la X
+  del nodo e le estremità si nascondono sotto gli altri strati.
+- **Calzari:** le fascette del sandalo nascono da `foot_surface(x, y)`, la
+  stessa superellisse usata per la mesh del piede, quindi restano aderenti.
 - **Spessore dei ricami:** i motivi laterali vengono proiettati sul pannello e
   sollevati oltre il suo spessore di 3,2 mm. La staffa e i suoi simboli usano
   la stessa superficie curva.
-- **Budget separati:** il gruppo `keep` protegge nastri, fibbia e ricami. Il
-  LOD0 usa circa 52k triangoli per stoffa e anatomia e 26k per i dettagli; i
-  LOD successivi decimano i due gruppi separatamente (25%/55% e 8%/20%).
+- **Budget separati su tre livelli:** i gruppi `keep` (nastri, fibbia, ricami)
+  e `mid` (teli in croce e cintura, stoffa con bordi vivi e pochi centimetri di
+  larghezza) proteggono i dettagli delicati. Il LOD0 usa circa 50k triangoli
+  per stoffa e anatomia, 11k per la stoffa media e 17k per i dettagli; i LOD
+  successivi decimano i tre gruppi separatamente (25/50/58% e 8/18/22%).
 - **AO:** il bake usa la UV comune e prepara un nodo immagine attivo in ogni
   slot materiale. Le texture vengono salvate su disco, ricaricate e
   impacchettate nel `.blend`; i GLB sono autonomi.
@@ -56,3 +63,12 @@ python3 tools/06_validate.py
   dei ricami dalla stoffa; `test_exports.py` reimporta GLB e FBX e controlla la
   visibilità della staffa e la presenza dei ricami in ogni LOD. La QA dei GLB
   gira anche con Python standard, senza Blender.
+
+## Ambiente di build senza display
+
+Il modulo `bpy` di PyPI funziona anche in un container headless (è così che sono
+stati rigenerati gli asset e le anteprime di questa revisione). Servono le
+librerie presenti in una normale installazione desktop (GL, X11, xkbcommon);
+in un container minimale si possono creare dei piccoli stub condivisi e
+caricarli con `LD_LIBRARY_PATH` / `LD_PRELOAD`. Nessuno script della pipeline
+apre finestre: si usano solo `bpy.ops` che non richiedono un contesto UI.

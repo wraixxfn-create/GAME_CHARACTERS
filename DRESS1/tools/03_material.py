@@ -230,14 +230,14 @@ def make_trim_material(name):
     out = nt.nodes.new("ShaderNodeOutputMaterial")
     bsdf = nt.nodes.new("ShaderNodeBsdfPrincipled")
     nt.links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
-    bsdf.inputs["Base Color"].default_value = (0.560, 0.410, 0.155, 1.0)
+    bsdf.inputs["Base Color"].default_value = (0.512, 0.372, 0.132, 1.0)
     bsdf.inputs["Metallic"].default_value = 0.55
-    bsdf.inputs["Roughness"].default_value = 0.46
+    bsdf.inputs["Roughness"].default_value = 0.44
     mat.use_backface_culling = True
     return mat
 
 
-def make_brass_material(name, base_rgb=(0.470, 0.330, 0.125),
+def make_brass_material(name, base_rgb=(0.430, 0.298, 0.108),
                         metallic=0.82, roughness=0.40):
     """Ottone a tinta piena.
 
@@ -336,10 +336,10 @@ def linen_maps():
     h = cloth_map(TEX, seed=7, fiber=0.8)
     base = np.zeros((TEX, TEX, 3), np.float32)
     tone = 0.80 + 0.20 * h
-    # avorio caldo con variazioni di tono
-    base[..., 0] = 0.845 * tone
-    base[..., 1] = 0.815 * tone * 0.995
-    base[..., 2] = 0.760 * tone * 0.99
+    # avorio caldo con variazioni di tono (la reference e' color carta)
+    base[..., 0] = 0.868 * tone
+    base[..., 1] = 0.836 * tone * 0.995
+    base[..., 2] = 0.775 * tone * 0.99
     # macchie di usura
     wear = fbm(TEX, base_cells=3, octaves=5, seed=31)
     base *= (0.90 + 0.18 * wear)[..., None]
@@ -358,9 +358,9 @@ def wool_maps():
     h = cloth_map(TEX, seed=21, fiber=1.3)
     base = np.zeros((TEX, TEX, 3), np.float32)
     tone = 0.72 + 0.28 * h
-    base[..., 0] = 0.150 * tone
-    base[..., 1] = 0.132 * tone
-    base[..., 2] = 0.120 * tone
+    base[..., 0] = 0.132 * tone
+    base[..., 1] = 0.108 * tone
+    base[..., 2] = 0.086 * tone
     nrm = normal_from_height(h, strength=1.3)
     rough = np.clip(0.78 + 0.12 * (1.0 - h), 0, 1)
     orm = np.zeros((TEX, TEX, 3), np.uint8)
@@ -391,9 +391,9 @@ def skin_maps():
     h = fbm(TEX, base_cells=40, octaves=4, seed=81)
     base = np.zeros((TEX, TEX, 3), np.float32)
     tone = 0.90 + 0.10 * h
-    base[..., 0] = 0.490 * tone
-    base[..., 1] = 0.344 * tone
-    base[..., 2] = 0.270 * tone
+    base[..., 0] = 0.470 * tone
+    base[..., 1] = 0.330 * tone
+    base[..., 2] = 0.258 * tone
     nrm = normal_from_height(h, strength=0.9)
     rough = np.clip(0.48 + 0.14 * h, 0, 1)
     orm = np.zeros((TEX, TEX, 3), np.uint8)
