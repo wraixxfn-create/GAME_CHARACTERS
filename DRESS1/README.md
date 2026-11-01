@@ -6,9 +6,9 @@ Capo statico dalla vita all'orlo, ispirato alla reference. Contiene **solo il ve
 
 ## Dettagli
 
-- Lino avorio con pieghe morbide, falde sovrapposte e orlo asimmetrico a punte.
+- Lino avorio con pieghe morbide, falde sovrapposte con tagli diagonali e orlo asimmetrico a punte.
 - Fascia in vita avvolta, cintura scura sottile e fibbia circolare in ottone.
-- Nastro frontale scuro appeso alla fibbia, con rombi, cerchio, linee e punta a V dorati; pannelli scuri laterali con ricami.
+- Nastro frontale scuro appeso alla fibbia, con rombi, cerchio, linee e punta a V dorati; pannelli scuri laterali più corti con ricami e bordi dorati.
 - Fodera interna scura aperta; non sostituisce un corpo e può richiedere adattamenti per la mesh del personaggio.
 
 ## File
@@ -18,7 +18,7 @@ Capo statico dalla vita all'orlo, ispirato alla reference. Contiene **solo il ve
 | `DRESS1.blend` | Scena Blender con mesh e texture incorporate |
 | `DRESS1.glb` | glTF 2.0 autonomo, 77.224 triangoli |
 | `DRESS1_LOD1.glb` | 31.093 triangoli |
-| `DRESS1_LOD2.glb` | 11.174 triangoli |
+| `DRESS1_LOD2.glb` | 11.177 triangoli |
 | `DRESS1.fbx` | FBX con materiali e texture incorporate |
 | `DRESS1_tex/` | Mappe PNG separate, inclusa AO |
 | `preview/` | Render e confronto con la reference |

@@ -515,7 +515,8 @@ class Panel:
                  tip=0.0, tip_pow=1.0, seed=0.0, pleat_n=27,
                  pleat_amp=0.010, edge_tuck=0.0, corner_lift=0.0,
                  skew=0.0, phase=0.0, blend_top=0.0, top_taper=0.0,
-                 follow=1.0, edge_roll=0.0, clearance=(0.0, 0.0)):
+                 follow=1.0, edge_roll=0.0, clearance=(0.0, 0.0),
+                 hem_slope=0.0):
         self.name = name
         self.ang = ang_table
         self.z = z_table
@@ -538,6 +539,7 @@ class Panel:
         # Le pieghe a coltello hanno creste di 3 cm: un pannello che non le
         # segue deve stare sopra le creste, altrimenti sparisce nelle valli.
         self.clearance = clearance
+        self.hem_slope = hem_slope
 
     def params(self, u, v):
         """(angolo, quota, bordo) del punto (u, v)."""
@@ -551,6 +553,8 @@ class Panel:
             z -= self.tip * (1.0 - edge) ** self.tip_pow * smoothstep(0.30, 1.0, v)
         if self.corner_lift:
             z += self.corner_lift * (edge ** 2.0) * smoothstep(0.45, 1.0, v)
+        # Bordo obliquo dei teli sovrapposti, sfumato verso la cintura.
+        z += self.hem_slope * uu * smoothstep(0.62, 1.0, v)
         # orlo leggermente ondulato: la stoffa non e' un cartone
         z += 0.0016 * math.sin(u * 5.0 + self.seed) * smoothstep(0.85, 1.0, v)
         return a, z, edge
@@ -681,6 +685,19 @@ def build_lappets():
             edge_tuck=0.0, blend_top=0.92, top_taper=0.90,
             edge_roll=0.0030, follow=1.0,
             clearance=(0.0, 0.004)))
+    # Due lembi corti, con taglio obliquo sovrapposto: la reference mostra
+    # bordi diagonali a meta gamba, non soltanto pieghe verticali fino a terra.
+    for name, a0, a1, w, bottom, slope, seed in (
+            ("Lap_OverlapL", -26, -30, 27, 0.50, -0.085, 9.1),
+            ("Lap_OverlapR",  27,  31, 26, 0.53,  0.075, 9.8)):
+        pnl = Panel(name, [(0, R(a0)), (1, R(a1))],
+                    [(0, SKIRT_TOP_Z), (1, bottom)], "lap3",
+                    width_table=[(0, R(w)), (1, R(w - 3))],
+                    seed=seed, pleat_n=13, pleat_amp=0.003,
+                    blend_top=0.88, top_taper=0.9, follow=1.0,
+                    edge_roll=0.0015, clearance=(0.001, 0.006),
+                    hem_slope=slope)
+        objs.append(pnl.build(nu=40, nv=22, thickness=0.0012))
     return objs
 
 
@@ -696,13 +713,13 @@ def drape_specs():
     R = math.radians
     return [
         ("Drape_L", [(0.0, R(62)), (0.5, R(68)), (1.0, R(75))],
-         [(0.0, 0.944), (1.0, 0.500)], [(0.0, R(20.0)), (1.0, R(18.0))], 1.2),
+         [(0.0, 0.944), (1.0, 0.585)], [(0.0, R(16.0)), (1.0, R(13.0))], 1.2),
         ("Drape_R", [(0.0, R(-62)), (0.5, R(-68)), (1.0, R(-75))],
-         [(0.0, 0.944), (1.0, 0.488)], [(0.0, R(20.0)), (1.0, R(18.0))], 3.4),
+         [(0.0, 0.944), (1.0, 0.575)], [(0.0, R(16.0)), (1.0, R(13.0))], 3.4),
         ("Drape_L2", [(0.0, R(88)), (1.0, R(102))],
-         [(0.0, 0.928), (1.0, 0.516)], [(0.0, R(14.0)), (1.0, R(12.0))], 5.0),
+         [(0.0, 0.928), (1.0, 0.592)], [(0.0, R(12.0)), (1.0, R(10.0))], 5.0),
         ("Drape_R2", [(0.0, R(-88)), (1.0, R(-102))],
-         [(0.0, 0.928), (1.0, 0.512)], [(0.0, R(14.0)), (1.0, R(12.0))], 7.1),
+         [(0.0, 0.928), (1.0, 0.588)], [(0.0, R(12.0)), (1.0, R(10.0))], 7.1),
     ]
 
 
@@ -713,7 +730,7 @@ def build_drapes():
     for name, ang, ztab, wtab, seed in drape_specs():
         layer = "drape2" if name.endswith("2") else "drape"
         pnl = Panel(name, ang, ztab, layer, width_table=wtab,
-                    tip=0.085 if not name.endswith("2") else 0.060,
+                    tip=0.055 if not name.endswith("2") else 0.045,
                     tip_pow=1.0, seed=seed,
                     pleat_n=13, pleat_amp=0.0075, edge_tuck=0.0,
                     blend_top=0.80, top_taper=0.80, corner_lift=0.024,
@@ -823,15 +840,15 @@ def build_sash():
     for i in range(n_rim + 1):
         a = TAU * i / n_rim
         rim.append(waist_pt(a, sash_top(a) - 0.0030, 0.0012))
-    objs.append(tube("Sash_Roll", rim, 0.0058, segs=12, caps=False))
+    objs.append(tube("Sash_Roll", rim, 0.0028, segs=12, caps=False))
 
     # Teli in croce: si incrociano davanti all'anello (che li copre) e le due
     # diagonali divergono subito, come nel disegno. Il telo B passa sotto A.
     objs.append(sash_wrap("Sash_CrossB", -3.08, 3.08, 1.074, 0.954, 0.030,
-                          0.0078, seed=3.1, taper=0.11, steep=2.9, nu=92,
+                          0.0098, seed=3.1, taper=0.11, steep=2.9, nu=92,
                           nv=12, thickness=0.0))
     objs.append(sash_wrap("Sash_CrossA", -3.02, 3.02, 0.948, 1.030, 0.026,
-                          0.0112, seed=0.9, taper=0.11, steep=2.9, nu=92,
+                          0.0132, seed=0.9, taper=0.11, steep=2.9, nu=92,
                           nv=12, thickness=0.0))
     # seconda passata piu' stretta, visibile sul fianco destro della reference
     objs.append(sash_wrap("Sash_CrossC", 0.35, 2.75, 1.038, 0.962, 0.030,
@@ -1082,6 +1099,9 @@ def strap_gold():
     stroke([(-hw, Z(0.80)), (0, Z(0.945)), (hw, Z(0.80))], 0.0021)
     stroke([(-hw * 0.68, Z(0.825)), (0, Z(0.92)),
             (hw * 0.68, Z(0.825))], 0.0015)
+    # Piccolo rombo incastonato nella punta e due filetti laterali,
+    # come il terminale geometrico ricamato della reference.
+    diamond(Z(0.895), 0.006, 0.012, 0.0018)
     for side in (-1, 1):
         edge = []
         z = Z(0.06)
@@ -1123,7 +1143,7 @@ def build_drape_runes(drapes):
         name = pnl.name
         big = not name.endswith("2")
         # bordi continui lungo i due lati del lembo
-        for u in (0.062,):
+        for u in (0.065, 0.935):
             path(pnl, name + "_border", [(u, 0.05), (u, 0.94)],
                  0.0017 if big else 0.0017)
         # bordo che segue l'orlo a punta

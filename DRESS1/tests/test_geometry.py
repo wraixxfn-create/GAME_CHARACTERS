@@ -39,6 +39,25 @@ class ShapeTests(unittest.TestCase):
             # fianco, non scendono fino in fondo
             self.assertGreater(heights[-1][1] - dress.hem_z(0), 0.16)
 
+    def test_short_overlapping_panels_have_diagonal_hems(self):
+        dress.reset_scene()
+        panels = {o.name: o for o in dress.build_lappets()
+                  if o.name.startswith("Lap_Overlap")}
+        self.assertEqual(set(panels), {"Lap_OverlapL", "Lap_OverlapR"})
+        for panel in panels.values():
+            # Ultima riga della griglia: bordo obliquo e sfalsato, sopra
+            # l'orlo principale, con sufficiente variazione di quota.
+            bottom = [v.co.z for v in panel.data.vertices[-41:]]
+            self.assertGreater(max(bottom) - min(bottom), 0.12)
+            self.assertGreater(min(bottom), 0.38)
+
+    def test_side_trims_frame_both_edges(self):
+        dress.reset_scene()
+        _, panels = dress.build_drapes()
+        borders = [o for o in dress.build_drape_runes(panels)
+                   if "_border" in o.name]
+        self.assertEqual(len(borders), 2 * len(panels))
+
     def test_reference_buckle_is_delicate(self):
         ring = dress.build_ring()[0]
         xs = [v.co.x for v in ring.data.vertices]
