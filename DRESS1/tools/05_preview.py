@@ -92,20 +92,20 @@ def main():
     setup_world(0.45, BG)
     studio(target=(0, 0, 0.62))
     ground(-0.004)
-    cam = add_camera("Hero", (0, -3.3, 0.62), (0, 0, 0.62), lens=88)
+    cam = add_camera("Hero", (0, -3.7, 0.72), (0, 0, 0.72), lens=85)
     sc.camera = cam
 
-    frame(cam, 0, 3.15, (0, 0, 0.62), 0.66)
+    frame(cam, 0, 3.70, (0, 0, 0.72), 0.76)
     preview_to(os.path.join(PREVIEW, "hero_front.png"), res=(900, 1240),
               transparent=False)
 
-    frame(cam, 34, 3.15, (0, 0, 0.62), 0.68)
+    frame(cam, 34, 3.70, (0, 0, 0.72), 0.77)
     preview_to(os.path.join(PREVIEW, "hero_three.png"), res=(900, 1240),
               transparent=False)
 
     # primo piano vita
     cam.data.lens = 110
-    frame(cam, 22, 1.05, (0.0, 0, 0.96), 1.06)
+    frame(cam, 22, 1.15, (0.0, 0, 1.00), 1.10)
     preview_to(os.path.join(PREVIEW, "hero_waist.png"), res=(1200, 1000),
               transparent=False)
 
@@ -124,7 +124,7 @@ def main():
 
     # dietro
     cam.data.lens = 88
-    frame(cam, 180, 3.15, (0, 0, 0.62), 0.68)
+    frame(cam, 180, 3.70, (0, 0, 0.72), 0.76)
     preview_to(os.path.join(PREVIEW, "hero_back.png"), res=(900, 1240),
               transparent=False)
 
@@ -132,7 +132,7 @@ def main():
     tmp = ensure_dir(os.path.join(work_dir(), "preview"))
     files = []
     for tag, ang in (("f", 0), ("s", 90), ("b", 180), ("q", 270)):
-        frame(cam, ang, 3.2, (0, 0, 0.62), 0.66)
+        frame(cam, ang, 3.70, (0, 0, 0.72), 0.76)
         p = os.path.join(tmp, f"turn_{tag}.png")
         preview_to(p, res=(620, 1000), transparent=True)
         files.append(p)
