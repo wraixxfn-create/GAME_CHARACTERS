@@ -230,15 +230,15 @@ def make_trim_material(name):
     out = nt.nodes.new("ShaderNodeOutputMaterial")
     bsdf = nt.nodes.new("ShaderNodeBsdfPrincipled")
     nt.links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
-    bsdf.inputs["Base Color"].default_value = (0.512, 0.372, 0.132, 1.0)
+    bsdf.inputs["Base Color"].default_value = (0.520, 0.410, 0.210, 1.0)
     bsdf.inputs["Metallic"].default_value = 0.55
     bsdf.inputs["Roughness"].default_value = 0.44
     mat.use_backface_culling = True
     return mat
 
 
-def make_brass_material(name, base_rgb=(0.430, 0.298, 0.108),
-                        metallic=0.82, roughness=0.40):
+def make_brass_material(name, base_rgb=(0.470, 0.360, 0.170),
+                        metallic=0.82, roughness=0.42):
     """Ottone a tinta piena.
 
     Un anello di 6 cm occupa pochi texel della mappa: una texture a chiazze

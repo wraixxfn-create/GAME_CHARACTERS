@@ -40,21 +40,29 @@ python3 tools/06_validate.py
 
 ## Scelte importanti
 
+- **Un capo intero:** `build_bodice()` genera il corpetto in lino dalla vita
+  alle spalle, con `bodice_top(a)` che disegna la scollatura davanti e le
+  giromaniche ai lati. Il corpetto è un guscio cavo (nessun corpo dentro) e
+  la fascia in vita copre la cucitura con la gonna. La staffa scura sale
+  lungo il corpetto fino alla scollatura (`strap_point()` usa `bodice_prof()`
+  sopra la fascia), così il nastro del disegno continua da collo a orlo.
 - **Pieghe morbide:** `drape_fold(x)` descrive una campata di lino appeso
   (cresta tonda e larga, valle stretta in ombra) e `pleats()` la distribuisce
-  su 20 periodi con profondità irregolare, fino a 4,2 cm all'orlo.
+  su 20 periodi con profondità irregolare, fino a 4,6 cm all'orlo.
   `skirt_disp(a, z)` è condivisa da gonna, falde e scialli: chi segue la gonna
   si muove con lei.
 - **Densità al primo colpo:** le griglie nascono alla risoluzione del LOD0
   (7 colonne per piega sulla gonna). Prima nascevano molto più fitte e la
   decimation le portava all'8%: le pieghe si scioglievano.
-- **Staffa tesa:** `strap_point()` ricava l'angolo reale sulla gonna per ogni
-  `x` ma segue solo la bombatura del centro davanti: il cuoio resta liscio,
-  con i bordi dritti e un margine costante sopra le creste dei veli. I ricami
-  (`_gold2d`) sono griglie campionate sulla superficie e sollevate lungo la
-  normale radiale.
+- **Staffa tesa:** `strap_point()` ricava l'angolo reale sulla gonna (e sul
+  corpetto sopra la fascia) per ogni `x` ma segue solo la bombatura del centro
+  davanti: il cuoio resta liscio, con i bordi dritti e un margine costante
+  sopra le creste dei veli. I ricami (`_gold2d`) sono griglie campionate sulla
+  superficie e sollevate lungo la normale radiale.
 - **Capo chiuso:** `build_lining()` crea la sacca interna che chiude gonna e
   fascia, così l'asset si guarda anche da sotto senza mostrare un guscio vuoto.
+  La fodera è in lana scura (il rovescio del capo), come il fondo scuro della
+  reference.
 - **Teli in vita:** `sash_wrap` stende un nastro fra due angoli con estremità
   assottigliate e salita ripida al centro, così l'incrocio davanti forma la X
   del nodo e le estremità si nascondono sotto gli altri strati.
@@ -63,9 +71,10 @@ python3 tools/06_validate.py
   nel punto, non una pendenza media.
 - **Budget separati su tre livelli:** i gruppi `keep` (nastri, fibbia, ricami)
   e `mid` (teli in croce e cintura, stoffa con bordi vivi e pochi centimetri di
-  larghezza) proteggono i dettagli delicati. Il LOD0 usa circa 50k triangoli
-  per stoffa e anatomia, 11k per la stoffa media e 17k per i dettagli; i LOD
-  successivi decimano i tre gruppi separatamente (25/50/58% e 8/18/22%).
+  larghezza) proteggono i dettagli delicati. Il LOD0 usa circa 41,5k triangoli
+  per stoffa (corpetto, gonna, falde, fodera), 10k per la stoffa media e 25,5k
+  per i dettagli; i LOD successivi decimano i tre gruppi separatamente
+  (25/50/58% e 8/18/22%). Con il corpetto il totale resta sotto 80k (77.224).
 - **AO:** il bake usa la UV comune e prepara un nodo immagine attivo in ogni
   slot materiale. Le texture vengono salvate su disco, ricaricate e
   impacchettate nel `.blend`; i GLB sono autonomi.

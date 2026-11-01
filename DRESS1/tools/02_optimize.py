@@ -29,9 +29,9 @@ from common import (apply_modifiers, ensure_dir, tri_count, uv_unwrap,
 # deve piu' fare il lavoro grosso (la gonna scendeva all'8% della sua griglia e
 # le pieghe a coltello diventavano stoffa molle). I bersagli restano come
 # rete di sicurezza se una griglia viene alzata di risoluzione.
-CLOTH_TARGET = 43000     # stoffa (gonna, falde, fodera, fascia)
+CLOTH_TARGET = 41500     # stoffa (gonna, falde, fodera, fascia)
 MID_TARGET = 11000       # stoffa con bordi vivi (teli in croce, cintura)
-TRIM_TARGET = 26000      # triangoli dei dettagli (oro, staffa, scialli)
+TRIM_TARGET = 25500      # triangoli dei dettagli (oro, staffa, scialli)
 
 
 # --------------------------------------------------------------------------

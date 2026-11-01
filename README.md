@@ -6,7 +6,7 @@ Modelli di personaggi per videogiochi, lavorati per essere pronti al motore.
 |---|---|---|
 | **BOSS1** — Demone Cornuto | game-ready: 80k tri, rig 34 ossa, 5 animazioni, PBR 2K + AO, LOD1/LOD2, scala 2,90 m | [BOSS1/](BOSS1/) → `BOSS1.blend`, `BOSS1.glb`, `BOSS1.fbx`, `BOSS1_LOD1.glb`, `BOSS1_LOD2.glb` |
 | **ELFO1** — Elfo Runico | game-ready: 55k tri, rig 43 ossa, 5 animazioni, PBR 2K + AO + rune emissive, LOD1/LOD2, scala 1,85 m | [ELFO1/](ELFO1/) → `ELFO1.blend`, `ELFO1.glb`, `ELFO1.fbx`, `ELFO1_LOD1.glb`, `ELFO1_LOD2.glb` |
-| **DRESS1** — Gonna cerimoniale | game-ready: 79k tri, 4 materiali PBR con AO bakeata, LOD1/LOD2, scala 0,96 m — **solo il capo**, senza gambe né piedi | [DRESS1/](DRESS1/) → `DRESS1.blend`, `DRESS1.glb`, `DRESS1.fbx`, `DRESS1_LOD1.glb`, `DRESS1_LOD2.glb` |
+| **DRESS1** — Vestito cerimoniale | game-ready: 77k tri, 4 materiali PBR con AO bakeata, LOD1/LOD2, scala 1,23 m — **solo il vestito**, senza corpo, gambe né piedi | [DRESS1/](DRESS1/) → `DRESS1.blend`, `DRESS1.glb`, `DRESS1.fbx`, `DRESS1_LOD1.glb`, `DRESS1_LOD2.glb` |
 
 ## BOSS1 in breve
 
@@ -28,20 +28,23 @@ versione (80k adattivi): `BOSS1/preview/detail_compare.png`.
 
 ## DRESS1 in breve
 
-- **solo la gonna**: gambe, piedi, caviglie fasciate e sandali sono stati
-  rimossi, così l'asset si monta su qualsiasi personaggio; una fodera interna
-  chiude il capo, quindi da sotto non si vede il guscio vuoto
-- gonna avorio a **31 pieghe a coltello** (faccia quasi dritta, cresta tonda,
-  valle ad angolo vivo) con profondità irregolare; sei falde sovrapposte con
+- **un capo intero, senza corpo**: corpetto in lino dalla vita alle spalle
+  (scollatura davanti e giromaniche larghe) e gonna avorio a pieghe morbide;
+  gambe, piedi, caviglie fasciate e sandali non ci sono, così l'asset si
+  monta su qualsiasi personaggio. Una fodera interna in lana scura chiude
+  corpetto e gonna, quindi da sotto e dalla scollatura non si vede il guscio
+  vuoto
+- gonna a **20 pieghe morbide** (cresta tonda e larga, valle stretta in
+  ombra) con profondità irregolare fino a 4,6 cm; sei falde sovrapposte con
   punte lunghe e sfalsate e una lingua centrale sotto la staffa
-- fascia annodata con tre teli che si incrociano davanti, bordo superiore
-  arrotolato, **cintura scura diagonale** e **anello d'ottone** con rivetti
-- staffa centrale larga 6,3 cm, incollata alle pieghe, con catena di simboli
-  dorati ricostruita dal disegno (rombo, cerchio con croce, fascia a pettine,
-  doppio V) e punta a V con intaglio centrale; scialli laterali in lana con
-  bordi dorati e sigilli
+- fascia annodata con teli che si incrociano davanti, bordo superiore
+  arrotolato, **cintura scura diagonale** e **anello d'ottone** senza rivetti
+- staffa centrale larga 6,3 cm che sale **dalla scollatura all'orlo**,
+  incollata alle pieghe, con catena di simboli dorati ricostruita dal disegno
+  (rombo, cerchio con croce, fascia a pettine, doppio V) e punta a V con
+  intaglio centrale; scialli laterali in lana con bordo dorato e sigilli
 - **4 materiali PBR**, texture 1K e AO bakeata, ricami dorati sottili
-- **79.224 triangoli**, LOD1 31.758 e LOD2 11.407 con budget separati per
+- **77.224 triangoli**, LOD1 31.093 e LOD2 11.169 con budget separati per
   stoffa, stoffa con bordi vivi e ricami; origine a terra, orlo a 12 cm
 - QA degli export in [`DRESS1/QA.md`](DRESS1/QA.md), pipeline e test in
   [`DRESS1/tools/`](DRESS1/tools/)

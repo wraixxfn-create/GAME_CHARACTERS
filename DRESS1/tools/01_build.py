@@ -370,7 +370,7 @@ def loft(name, sections, rings=24, cap_bottom=True, cap_top=True):
 # --------------------------------------------------------------------------
 
 PLEAT_N = 20          # pieghe morbide lungo tutto il giro
-PLEAT_DEPTH = 0.042   # profondita' cresta-valle all'orlo (m)
+PLEAT_DEPTH = 0.046   # profondita' cresta-valle all'orlo (m)
 
 
 def drape_fold(x):
@@ -386,7 +386,7 @@ def drape_fold(x):
     ``x`` va da 0 (cresta) a 1 (cresta successiva); la valle sta a 0.5.
     """
     c = 0.5 * (1.0 + math.cos(TAU * x))
-    return c ** 0.50
+    return c ** 0.46
 
 
 # media del profilo su un periodo: centra la piega fra cresta e valle
@@ -482,6 +482,84 @@ def build_underskirt():
         return p
 
     return [cloth_grid("UnderSkirt", nu, nv, surf, thickness=0.0)]
+
+
+# --------------------------------------------------------------------------
+# corpetto
+# --------------------------------------------------------------------------
+
+# Il vestito della reference non e' una gonna staccata: e' un capo intero,
+# con il corpetto che sale dalla vita alle spalle e la stessa staffa scura
+# che scende dal collo all'orlo. Qui il corpetto e' un guscio cavo (nessun
+# corpo dentro), con scollatura e giromanica larghe, come un vestito da
+# indossare sopra un personaggio.
+BODICE_PROFILE = [
+    (0.964, 0.152, 0.126),
+    (1.020, 0.158, 0.130),
+    (1.080, 0.164, 0.134),
+    (1.140, 0.172, 0.140),
+    (1.200, 0.180, 0.145),
+    (1.260, 0.188, 0.150),
+    (1.320, 0.194, 0.154),
+    (1.380, 0.198, 0.156),
+]
+
+
+def bodice_prof(z):
+    pts = BODICE_PROFILE
+    if z <= pts[0][0]:
+        return pts[0][1], pts[0][2]
+    if z >= pts[-1][0]:
+        return pts[-1][1], pts[-1][2]
+    for i in range(len(pts) - 1):
+        z0, x0, y0 = pts[i]
+        z1, x1, y1 = pts[i + 1]
+        if z0 <= z <= z1:
+            t = (z - z0) / (z1 - z0)
+            t = t * t * (3.0 - 2.0 * t)
+            return x0 + (x1 - x0) * t, y0 + (y1 - y0) * t
+    return pts[-1][1], pts[-1][2]
+
+
+def bodice_top(a):
+    """Bordo alto del corpetto: scollatura davanti, giromanica ai lati.
+
+    Davanti il bordo scende a 1,29 m (la scollatura della reference), sulle
+    spalle sale a 1,36 m e ai lati scende a 1,24 m per aprire le giromaniche.
+    Il risultato e' un corpetto senza maniche, con il bordo che disegna la
+    scollatura e le due aperture laterali.
+    """
+    aa = abs(a)
+    front = -0.070 * math.exp(-(a / 0.55) ** 2)
+    back = -0.020 * math.exp(-((aa - math.pi) / 0.60) ** 2)
+    shoulder = 0.020 * math.sin(a) ** 2
+    armhole = -0.160 * math.exp(-((aa - math.pi / 2.0) / 0.50) ** 2)
+    return 1.360 + front + back + shoulder + armhole
+
+
+def bodice_point(a, z, extra=0.0):
+    rx, ry = bodice_prof(z)
+    rx += extra
+    ry += extra
+    return Vector((rx * math.sin(a), -ry * math.cos(a), z))
+
+
+def build_bodice():
+    """Corpetto in lino: un guscio cavo con pieghe morbide e bordo vivo."""
+    nu, nv = 64, 18
+
+    def surf(u, v):
+        # avvolge l'angolo su [-pi, pi] per far cadere la scollatura davanti
+        a = (TAU * u + math.pi) % TAU - math.pi
+        top = bodice_top(a)
+        z = SKIRT_TOP_Z + (top - SKIRT_TOP_Z) * v
+        # pieghe di lino morbide, piu' fitte in vita e quasi assenti al bordo
+        fold = (0.0016 * math.cos(a * 9.0 + z * 26.0)
+                + 0.0008 * math.cos(a * 17.0 - z * 18.0 + 1.3))
+        env = smoothstep(0.0, 0.12, v) * (1.0 - smoothstep(0.88, 1.0, v))
+        return bodice_point(a, z, extra=fold * env)
+
+    return [cloth_grid("Bodice", nu, nv, surf, thickness=0.0)]
 
 
 def build_skirt():
@@ -700,13 +778,13 @@ def drape_specs():
     R = math.radians
     return [
         ("Drape_L", [(0.0, R(62)), (0.5, R(68)), (1.0, R(75))],
-         [(0.0, 0.944), (1.0, 0.500)], [(0.0, R(13.0)), (1.0, R(11.5))], 1.2),
+         [(0.0, 0.944), (1.0, 0.500)], [(0.0, R(20.0)), (1.0, R(18.0))], 1.2),
         ("Drape_R", [(0.0, R(-62)), (0.5, R(-68)), (1.0, R(-75))],
-         [(0.0, 0.944), (1.0, 0.488)], [(0.0, R(13.0)), (1.0, R(11.5))], 3.4),
+         [(0.0, 0.944), (1.0, 0.488)], [(0.0, R(20.0)), (1.0, R(18.0))], 3.4),
         ("Drape_L2", [(0.0, R(88)), (1.0, R(102))],
-         [(0.0, 0.928), (1.0, 0.516)], [(0.0, R(9.5)), (1.0, R(8.0))], 5.0),
+         [(0.0, 0.928), (1.0, 0.516)], [(0.0, R(14.0)), (1.0, R(12.0))], 5.0),
         ("Drape_R2", [(0.0, R(-88)), (1.0, R(-102))],
-         [(0.0, 0.928), (1.0, 0.512)], [(0.0, R(9.5)), (1.0, R(8.0))], 7.1),
+         [(0.0, 0.928), (1.0, 0.512)], [(0.0, R(14.0)), (1.0, R(12.0))], 7.1),
     ]
 
 
@@ -920,7 +998,7 @@ def build_ring():
 # staffa con i simboli
 # --------------------------------------------------------------------------
 
-STRAP_TOP_Z = 1.0512
+STRAP_TOP_Z = 1.2900  # scollatura del corpetto, davanti
 STRAP_SHOULDER_Z = 0.398
 STRAP_TIP_Z = 0.322
 
@@ -948,13 +1026,18 @@ def strap_point(x, z, off=0.0):
     """
     w = max(strap_halfwidth(z), 1e-3)
     if z >= SKIRT_TOP_Z:
-        # Sopra la gonna la staffa sale sulla fascia, fino al bordo alto: nella
-        # reference il nastro scuro si vede anche sopra l'anello, sopra i teli
-        # avorio incrociati. Il gradino di livello sotto la fascia resta
-        # nascosto dal bordo inferiore della fascia stessa.
-        rx = WAIST_RX + 0.0168
-        a = math.asin(max(-1.0, min(1.0, x / rx)))
-        base = waist_pt(a, z, 0.0168)
+        # Sopra la gonna la staffa sale sulla fascia, poi sul corpetto: nella
+        # reference il nastro scuro parte dalla scollatura e scende fino
+        # all'orlo. Il gradino di livello sotto la fascia resta nascosto dal
+        # bordo inferiore della fascia stessa.
+        if z <= 1.085:
+            rx = WAIST_RX + 0.0168
+            a = math.asin(max(-1.0, min(1.0, x / rx)))
+            base = waist_pt(a, z, 0.0168)
+        else:
+            rx, _ = bodice_prof(z)
+            a = math.asin(max(-1.0, min(1.0, x / rx)))
+            base = bodice_point(a, z, extra=0.0060)
     else:
         # Nella reference la staffa e' un nastro di cuoio **liscio**: i bordi
         # scendono dritti e la superficie non segue una piega per colonna.
@@ -1070,10 +1153,10 @@ def strap_gold():
     """
     objs = []
 
-    def stroke(points, width=0.0022):
+    def stroke(points, width=0.0018):
         objs.append(_gold2d(points, width))
 
-    def diamond(cz, rx, rz, width=0.0024):
+    def diamond(cz, rx, rz, width=0.0020):
         stroke([(0, cz + rz), (rx, cz), (0, cz - rz),
                 (-rx, cz), (0, cz + rz)], width)
 
@@ -1084,8 +1167,11 @@ def strap_gold():
         """Frazione della lunghezza decorata -> quota."""
         return top + (tip - top) * f
 
+    # --- scollatura: piccolo rombo e asta, come nel disegno
+    stroke([(0.0, Z(0.018)), (0.0, Z(0.052))], 0.0015)
+    diamond(Z(0.070), 0.0058, 0.0105)
     # --- parte alta, appena sotto l'anello
-    stroke([(0.0, Z(0.085)), (0.0, Z(0.140))], 0.0019)
+    stroke([(0.0, Z(0.085)), (0.0, Z(0.140))], 0.0015)
     diamond(Z(0.172), 0.0072, 0.0135)
     # --- cerchio con traversa e croce (simbolo centrale, piu' grande)
     stroke([(0.0, Z(0.200)), (0.0, Z(0.228))], 0.0018)
@@ -1093,37 +1179,37 @@ def strap_gold():
     cz = Z(0.286)
     circle = [(r * math.cos(TAU * i / 64),
                cz + r * math.sin(TAU * i / 64)) for i in range(65)]
-    stroke(circle, 0.0026)
-    stroke([(-0.0150, cz - r * 0.98), (0.0150, cz - r * 0.98)], 0.0025)
-    stroke([(0.0, cz - r), (0.0, Z(0.372))], 0.0023)
-    stroke([(-0.0105, Z(0.338)), (0.0105, Z(0.338))], 0.0021)
+    stroke(circle, 0.0022)
+    stroke([(-0.0150, cz - r * 0.98), (0.0150, cz - r * 0.98)], 0.0021)
+    stroke([(0.0, cz - r), (0.0, Z(0.372))], 0.0019)
+    stroke([(-0.0105, Z(0.338)), (0.0105, Z(0.338))], 0.0017)
     # --- asta lunga con barretta
-    stroke([(0.0, Z(0.378)), (0.0, Z(0.512))], 0.0023)
-    stroke([(-0.0100, Z(0.452)), (0.0100, Z(0.452))], 0.0019)
+    stroke([(0.0, Z(0.378)), (0.0, Z(0.512))], 0.0019)
+    stroke([(-0.0100, Z(0.452)), (0.0100, Z(0.452))], 0.0015)
     diamond(Z(0.544), 0.0092, 0.0150)
-    stroke([(0.0, Z(0.566)), (0.0, Z(0.660))], 0.0023)
+    stroke([(0.0, Z(0.566)), (0.0, Z(0.660))], 0.0019)
     # --- fascia decorata sopra la punta: barrette verticali fra due righe
     halfw = strap_halfwidth(Z(0.690)) - 0.0068
-    stroke([(-halfw, Z(0.690)), (halfw, Z(0.690))], 0.0021)
+    stroke([(-halfw, Z(0.690)), (halfw, Z(0.690))], 0.0017)
     for k in range(-4, 5):
         x = k * halfw / 4.4
-        stroke([(x, Z(0.695)), (x, Z(0.744))], 0.0016)
-    stroke([(-halfw, Z(0.748)), (halfw, Z(0.748))], 0.0021)
+        stroke([(x, Z(0.695)), (x, Z(0.744))], 0.0013)
+    stroke([(-halfw, Z(0.748)), (halfw, Z(0.748))], 0.0017)
     # --- doppio V della punta, contenuto nel nastro
     hw_v = strap_halfwidth(Z(0.930)) - 0.0050
-    stroke([(-hw_v, Z(0.800)), (0.0, Z(0.930)), (hw_v, Z(0.800))], 0.0026)
+    stroke([(-hw_v, Z(0.800)), (0.0, Z(0.930)), (hw_v, Z(0.800))], 0.0022)
     stroke([(-hw_v * 0.74, Z(0.818)), (0.0, Z(0.922)),
-            (hw_v * 0.74, Z(0.818))], 0.0020)
+            (hw_v * 0.74, Z(0.818))], 0.0016)
     # --- filetto dorato lungo i due bordi del nastro: nella reference e' un
     #     filo sottile, non un bordo dipinto
-    for side in (-1, 1):
+    for side in (-1,):
         edge = []
         z = Z(0.055)
         while z > Z(0.800):
             hw = strap_halfwidth(z)
             edge.append((side * (hw - 0.0046), z))
             z -= 0.010
-        stroke(edge, 0.0013)
+        stroke(edge, 0.0011)
     return objs
 
 
@@ -1140,7 +1226,7 @@ def build_drape_runes(drapes):
     """
     objs = []
 
-    def path(pnl, name, vertices, width=0.0023):
+    def path(pnl, name, vertices, width=0.0019):
         # Suddividiamo i tratti prima di proiettarli sul lembo piegato.
         uv = []
         for (u0, v0), (u1, v1) in zip(vertices, vertices[1:]):
@@ -1151,34 +1237,34 @@ def build_drape_runes(drapes):
         normals = [pnl.nrm(u, v) for u, v in uv]
         # La griglia ha 3.2 mm di spessore sul lato esterno: stare sopra
         # l'estrusione, non sotto la superficie originale della griglia.
-        pts = [pnl.pt(u, v) + n * 0.0026 for (u, v), n in zip(uv, normals)]
+        pts = [pnl.pt(u, v) + n * 0.0022 for (u, v), n in zip(uv, normals)]
         objs.append(ribbon_n(name, pts, normals, width, thickness=0.0005))
 
     for pnl in drapes:
         name = pnl.name
         big = not name.endswith("2")
         # bordi continui lungo i due lati del lembo
-        for u in (0.062, 0.938):
+        for u in (0.062,):
             path(pnl, name + "_border", [(u, 0.05), (u, 0.94)],
-                 0.0021 if big else 0.0017)
+                 0.0017 if big else 0.0017)
         # bordo che segue l'orlo a punta
         path(pnl, name + "_hem", [(0.09, 0.912), (0.50, 0.950), (0.91, 0.912)],
-             0.0019 if big else 0.0016)
+             0.0015 if big else 0.0013)
         if not big:
             continue
         # gancio a spirale squadrata (il sigillo della reference)
         path(pnl, name + "_rune",
              [(0.38, 0.185), (0.38, 0.335), (0.63, 0.335),
-              (0.63, 0.235), (0.485, 0.235)], 0.0024)
+              (0.63, 0.235), (0.485, 0.235)], 0.0020)
         # asta sotto il gancio
-        path(pnl, name + "_stem", [(0.38, 0.185), (0.38, 0.135)], 0.0020)
+        path(pnl, name + "_stem", [(0.38, 0.185), (0.38, 0.135)], 0.0016)
         # rombo piu' in basso
         path(pnl, name + "_diamond",
              [(0.50, 0.545), (0.635, 0.625), (0.50, 0.705),
-              (0.365, 0.625), (0.50, 0.545)], 0.0022)
+              (0.365, 0.625), (0.50, 0.545)], 0.0018)
         # due barrette ai lati del rombo
         for u in (0.30, 0.70):
-            path(pnl, name + "_bar", [(u, 0.600), (u, 0.650)], 0.0016)
+            path(pnl, name + "_bar", [(u, 0.600), (u, 0.650)], 0.0013)
     return objs
 
 
@@ -1242,7 +1328,7 @@ def build_all():
 
     groups = {
         "fabric": (build_lining() + build_underskirt() + build_skirt()
-                   + build_lappets()
+                   + build_bodice() + build_lappets()
                    + [o for o in sash if o.name not in {m.name for m in mid}]),
         "dark": drapes + strap_body + build_buckle_back(),
         "gold": build_ring(),
@@ -1254,6 +1340,12 @@ def build_all():
         if key in KEEP_GROUPS:
             tag_keep(objs)
         all_objs += objs
+    # La fodera interna e' lana scura: da sotto l'orlo si legge come il
+    # rovescio del capo (nella reference il fondo e' scuro), non come un
+    # guscio di lino chiaro. Resta nel gruppo stoffa per non pesare sul
+    # budget dei dettagli.
+    assign_material([o for o in groups["fabric"] if o.name == "Lining"],
+                    "DRESS1_Wool")
     tag_group(mid, "mid")
     all_objs += mid
     return all_objs
