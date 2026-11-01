@@ -6,7 +6,7 @@ Genera in ``DRESS1/preview/``:
 * ``hero_three.png``     tre quarti
 * ``hero_waist.png``     primo piano su fascia, anello e staffa
 * ``hero_hem.png``       primo piano sulle falde e sull'orlo
-* ``hero_inside.png``    vista dal basso: il capo e' chiuso dalla fodera
+* ``hero_inside.png``    vista dal basso della fodera aperta
 * ``hero_back.png``      retro, luce da studio
 * ``turnaround.png``     quattro viste affiancate (0/90/180/270 gradi)
 * ``ref_compare.png``    concept dell'utente e render finale affiancati
@@ -92,14 +92,14 @@ def main():
     setup_world(0.45, BG)
     studio(target=(0, 0, 0.62))
     ground(-0.004)
-    cam = add_camera("Hero", (0, -3.7, 0.72), (0, 0, 0.72), lens=85)
+    cam = add_camera("Hero", (0, -2.8, 0.60), (0, 0, 0.60), lens=85)
     sc.camera = cam
 
-    frame(cam, 0, 3.70, (0, 0, 0.72), 0.76)
+    frame(cam, 0, 2.80, (0, 0, 0.60), 0.62)
     preview_to(os.path.join(PREVIEW, "hero_front.png"), res=(900, 1240),
               transparent=False)
 
-    frame(cam, 34, 3.70, (0, 0, 0.72), 0.77)
+    frame(cam, 34, 2.80, (0, 0, 0.60), 0.63)
     preview_to(os.path.join(PREVIEW, "hero_three.png"), res=(900, 1240),
               transparent=False)
 
@@ -115,8 +115,7 @@ def main():
     preview_to(os.path.join(PREVIEW, "hero_hem.png"), res=(1200, 900),
               transparent=False)
 
-    # dal basso, di tre quarti: si vede che la fodera chiude il capo invece di
-    # lasciare un guscio vuoto
+    # dal basso, di tre quarti: fodera e apertura per il personaggio
     cam.data.lens = 60
     frame(cam, 28, 1.5, (0, 0, 0.52), 0.02)
     preview_to(os.path.join(PREVIEW, "hero_inside.png"), res=(1000, 1000),
@@ -124,7 +123,7 @@ def main():
 
     # dietro
     cam.data.lens = 88
-    frame(cam, 180, 3.70, (0, 0, 0.72), 0.76)
+    frame(cam, 180, 2.80, (0, 0, 0.60), 0.62)
     preview_to(os.path.join(PREVIEW, "hero_back.png"), res=(900, 1240),
               transparent=False)
 
@@ -132,7 +131,7 @@ def main():
     tmp = ensure_dir(os.path.join(work_dir(), "preview"))
     files = []
     for tag, ang in (("f", 0), ("s", 90), ("b", 180), ("q", 270)):
-        frame(cam, ang, 3.70, (0, 0, 0.72), 0.76)
+        frame(cam, ang, 2.80, (0, 0, 0.60), 0.62)
         p = os.path.join(tmp, f"turn_{tag}.png")
         preview_to(p, res=(620, 1000), transparent=True)
         files.append(p)
