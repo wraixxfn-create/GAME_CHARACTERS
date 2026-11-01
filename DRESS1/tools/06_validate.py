@@ -166,7 +166,7 @@ def main():
                    f"{cx*1000:+.1f} mm"))
     checks.append(("budget LOD0 (massimo 80.000 triangoli)",
                    0 < base["tris"] <= 80000, str(base["tris"])))
-    checks.append(("quattro materiali", len(base["materials"]) == 4,
+    checks.append(("cinque materiali", len(base["materials"]) == 5,
                    str(len(base["materials"]))))
     checks.append(("vertici finiti e UV/normali presenti in tutti i LOD",
                    all(r["finite"] and r["uv_normals"] for r in rows), "verificato"))
@@ -181,7 +181,7 @@ def main():
     same_mats = all(set(r["materials"]) == set(base["materials"]) for r in rows[1:])
     checks.append(("stessi materiali in tutti i LOD", same_mats,
                    "ok" if same_mats else "materiali differenti"))
-    expected_double = {"DRESS1_Wool", "DRESS1_Linen"}
+    expected_double = {"DRESS1_Wool", "DRESS1_Linen", "DRESS1_Leather"}
     actual_double = {m for m, d in zip(base["materials"], base["double_sided"]) if d}
     checks.append(("doppia faccia sui materiali di stoffa", actual_double == expected_double,
                    ", ".join(sorted(actual_double))))
@@ -193,7 +193,7 @@ def main():
                    ", ".join(base["extensions"]) or "nessuna"))
 
     js = read_glb(os.path.join(REPO, "DRESS1.glb"))[0]
-    textured = {"DRESS1_Linen", "DRESS1_Wool"}
+    textured = {"DRESS1_Linen", "DRESS1_Wool", "DRESS1_Leather"}
     pbr_ok = all(
         "baseColorTexture" in m.get("pbrMetallicRoughness", {}) and
         "metallicRoughnessTexture" in m.get("pbrMetallicRoughness", {}) and
@@ -201,7 +201,7 @@ def main():
         for m in js.get("materials", []) if m.get("name") in textured
     ) and textured.issubset(set(base["materials"]))
     checks.append(("base color, normal, ORM e AO sulle superfici PBR", pbr_ok,
-                   "2 materiali testurizzati"))
+                   "3 materiali testurizzati"))
 
     lines = ["# QA DRESS1", "",
              "Generato da `tools/06_validate.py` (parser glTF senza Blender).", "",

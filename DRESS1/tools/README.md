@@ -40,37 +40,55 @@ python3 tools/06_validate.py
 
 ## Scelte importanti
 
+- **Profilo pieno misurato sul disegno:** `PROFILE` segue la larghezza della
+  reference riga per riga: svasatura decisa sotto il fianco, discesa quasi
+  cilindrica (a metà altezza la gonna è già al 90% della bocca), lieve
+  rientro ai due terzi e riacceleratura finale. L'orlo sta a ~1,8 volte la
+  vita.
 - **Pieghe morbide:** `drape_fold(x)` descrive una campata di lino appeso
   (cresta tonda e larga, valle stretta in ombra) e `pleats()` la distribuisce
-  su 20 periodi con profondità irregolare, fino a 4,2 cm all'orlo.
-  `skirt_disp(a, z)` è condivisa da gonna, falde e scialli: chi segue la gonna
-  si muove con lei.
+  su 20 periodi con profondità irregolare, fino a 4,6 cm all'orlo.
+  `skirt_disp(a, z)` è condivisa da gonna, falde, lingua e scialli: chi segue
+  la gonna si muove con lei.
 - **Densità al primo colpo:** le griglie nascono alla risoluzione del LOD0
   (7 colonne per piega sulla gonna). Prima nascevano molto più fitte e la
   decimation le portava all'8%: le pieghe si scioglievano.
-- **Staffa tesa:** `strap_point()` ricava l'angolo reale sulla gonna per ogni
-  `x` ma segue solo la bombatura del centro davanti: il cuoio resta liscio,
-  con i bordi dritti e un margine costante sopra le creste dei veli. I ricami
-  (`_gold2d`) sono griglie campionate sulla superficie e sollevate lungo la
-  normale radiale.
+- **Staffa tesa e corta:** `strap_point()` ricava l'angolo reale sulla gonna
+  per ogni `x` ma segue solo la bombatura del centro davanti: il cuoio resta
+  liscio, con i bordi dritti e un margine costante sopra le creste dei veli.
+  Il nastro finisce a metà coscia (z ≈ 0,46): sotto continua la lingua. I
+  ricami (`_gold2d`) sono griglie campionate sulla superficie e sollevate
+  lungo la normale radiale.
+- **La lingua e il suo rombo:** la lingua è un pannello largo con i solchi
+  spostati ai bordi, così il centro resta un cartiglio liscio;
+  `build_tongue_gold()` vi appoggia il rombo con la croce (il simbolo più
+  grande del disegno) campionando la superficie del pannello con una
+  bisezione sulla quota (`_tongue_v_for_z`).
+- **Catena dorata sobria:** sulla staffa solo un piccolo rombo a metà
+  discesa, una barretta, l'asta lunga col rombo al centro e il filetto sui
+  bordi: nel disegno il cuoio è nudo nel tratto alto.
 - **Capo chiuso:** `build_lining()` crea la sacca interna che chiude gonna e
   fascia, così l'asset si guarda anche da sotto senza mostrare un guscio vuoto.
 - **Teli in vita:** `sash_wrap` stende un nastro fra due angoli con estremità
   assottigliate e salita ripida al centro, così l'incrocio davanti forma la X
   del nodo e le estremità si nascondono sotto gli altri strati.
+- **Cinque materiali:** lino, lana e cuoio testurizzati più ottone e oro dei
+  ricami a tinta piena. Il cuoio (`DRESS1_Leather`) separa staffa e cintura
+  dagli scialli scuri come nel disegno.
 - **Spessore dei ricami:** i motivi laterali vengono proiettati sul pannello e
   sollevati di 2,6 mm; sulla staffa i simboli usano la normale radiale calcolata
   nel punto, non una pendenza media.
 - **Budget separati su tre livelli:** i gruppi `keep` (nastri, fibbia, ricami)
   e `mid` (teli in croce e cintura, stoffa con bordi vivi e pochi centimetri di
-  larghezza) proteggono i dettagli delicati. Il LOD0 usa circa 50k triangoli
-  per stoffa e anatomia, 11k per la stoffa media e 17k per i dettagli; i LOD
+  larghezza) proteggono i dettagli delicati. Il LOD0 usa circa 43k triangoli
+  per la stoffa, 10k per la stoffa media e 26k per i dettagli; i LOD
   successivi decimano i tre gruppi separatamente (25/50/58% e 8/18/22%).
 - **AO:** il bake usa la UV comune e prepara un nodo immagine attivo in ogni
   slot materiale. Le texture vengono salvate su disco, ricaricate e
   impacchettate nel `.blend`; i GLB sono autonomi.
-- **Test:** `test_geometry.py` controlla le superfici procedurali e le distanze
-  dei ricami dalla stoffa; `test_exports.py` reimporta GLB e FBX e controlla la
+- **Test:** `test_geometry.py` controlla le superfici procedurali, le distanze
+  dei ricami dalla stoffa e la catena dorata (cuoio nudo in alto, rombo grande
+  sotto la punta); `test_exports.py` reimporta GLB e FBX e controlla la
   visibilità della staffa e la presenza dei ricami in ogni LOD. La QA dei GLB
   gira anche con Python standard, senza Blender.
 

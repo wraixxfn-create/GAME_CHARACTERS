@@ -1,10 +1,10 @@
 """DRESS1 — materiali PBR e bake AO.
 
-Quattro materiali testurizzati (lino, lana, tela della suola e pelle) e due
-metalli a tinta piena (ottone e ricamo). Le immagini sono generate in numpy,
-l'AO viene bakeata su Cycles e le mappe sono impacchettate nel .blend.
-Le connessioni al nodo glTF Material Output permettono all'exporter di
-includere l'occlusione nei GLB.
+Cinque materiali: tre stoffe testurizzate (lino, lana e cuoio della
+staffa/cintura) e due metalli a tinta piena (ottone e ricamo). Le immagini
+sono generate in numpy, l'AO viene bakeata su Cycles e le mappe sono
+impacchettate nel .blend. Le connessioni al nodo glTF Material Output
+permettono all'exporter di includere l'occlusione nei GLB.
 """
 
 from __future__ import annotations
@@ -230,9 +230,12 @@ def make_trim_material(name):
     out = nt.nodes.new("ShaderNodeOutputMaterial")
     bsdf = nt.nodes.new("ShaderNodeBsdfPrincipled")
     nt.links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
-    bsdf.inputs["Base Color"].default_value = (0.512, 0.372, 0.132, 1.0)
-    bsdf.inputs["Metallic"].default_value = 0.55
-    bsdf.inputs["Roughness"].default_value = 0.44
+    # Il rombo grande sta in una zona che l'incrocio dei veli mette in ombra:
+    # l'oro resta un filo piu' chiaro e piu' metallico perche' il simbolo
+    # resti leggibile anche li'.
+    bsdf.inputs["Base Color"].default_value = (0.575, 0.425, 0.155, 1.0)
+    bsdf.inputs["Metallic"].default_value = 0.62
+    bsdf.inputs["Roughness"].default_value = 0.40
     mat.use_backface_culling = True
     return mat
 
@@ -370,32 +373,24 @@ def wool_maps():
     return base, nrm, orm
 
 
-def canvas_maps():
-    h = cloth_map(TEX, seed=61, fiber=1.1)
-    base = np.zeros((TEX, TEX, 3), np.float32)
-    tone = 0.86 + 0.14 * h
-    # Suola cuoio bruno scuro: non una suola bianca da infradito.
-    base[..., 0] = 0.220 * tone
-    base[..., 1] = 0.175 * tone
-    base[..., 2] = 0.145 * tone
-    nrm = normal_from_height(h, strength=2.0)
-    rough = np.clip(0.80 + 0.12 * (1 - h), 0, 1)
-    orm = np.zeros((TEX, TEX, 3), np.uint8)
-    orm[..., 0] = 255
-    orm[..., 1] = (rough * 255).astype(np.uint8)
-    orm[..., 2] = 0
-    return base, nrm, orm
+def leather_maps():
+    """Cuoio della staffa e della cintura.
 
-
-def skin_maps():
-    h = fbm(TEX, base_cells=40, octaves=4, seed=81)
+    Nel disegno il nastro che scende dall'anello e' piu' chiaro della lana
+    degli scialli: un cuoio bruno medio, quasi senza trama, con una grana
+    fine. Modellarlo con la lana scura lo faceva sparire contro i veli.
+    """
+    h = cloth_map(TEX, seed=61, fiber=0.75)
+    big = fbm(TEX, base_cells=5, octaves=4, seed=91)
     base = np.zeros((TEX, TEX, 3), np.float32)
-    tone = 0.90 + 0.10 * h
-    base[..., 0] = 0.470 * tone
-    base[..., 1] = 0.330 * tone
-    base[..., 2] = 0.258 * tone
-    nrm = normal_from_height(h, strength=0.9)
-    rough = np.clip(0.48 + 0.14 * h, 0, 1)
+    tone = 0.82 + 0.18 * h
+    base[..., 0] = 0.292 * tone
+    base[..., 1] = 0.208 * tone
+    base[..., 2] = 0.156 * tone
+    base *= (0.92 + 0.14 * big)[..., None]
+    base = (base * 255).clip(0, 255).astype(np.uint8)
+    nrm = normal_from_height(h * 0.7 + 0.3 * big, strength=1.1)
+    rough = np.clip(0.56 + 0.10 * (1.0 - h) + 0.05 * big, 0, 1)
     orm = np.zeros((TEX, TEX, 3), np.uint8)
     orm[..., 0] = 255
     orm[..., 1] = (rough * 255).astype(np.uint8)
@@ -440,6 +435,11 @@ def main():
     wool_nrm = image_from_array("DRESS1_Wool_Normal", wnrm, "Non-Color")
     wool_orm = image_from_array("DRESS1_Wool_ORM", worm, "Non-Color")
 
+    lbase, lnrm, lorm = leather_maps()
+    leather_base = image_from_array("DRESS1_Leather_BaseColor", lbase, "sRGB")
+    leather_nrm = image_from_array("DRESS1_Leather_Normal", lnrm, "Non-Color")
+    leather_orm = image_from_array("DRESS1_Leather_ORM", lorm, "Non-Color")
+
     mats = {}
     mats["DRESS1_Linen"] = make_material(
         "DRESS1_Linen", linen_base, linen_orm, linen_nrm, ao_img=ao_img,
@@ -447,6 +447,9 @@ def main():
     mats["DRESS1_Wool"] = make_material(
         "DRESS1_Wool", wool_base, wool_orm, wool_nrm, ao_img=ao_img,
         normal_strength=1.2, double_sided=True)
+    mats["DRESS1_Leather"] = make_material(
+        "DRESS1_Leather", leather_base, leather_orm, leather_nrm,
+        ao_img=ao_img, normal_strength=1.1, double_sided=True)
     mats["DRESS1_Gold"] = make_brass_material("DRESS1_Gold")
     mats["DRESS1_GoldTrim"] = make_trim_material("DRESS1_GoldTrim")
 
@@ -457,6 +460,8 @@ def main():
         if new is None:
             if "Wool" in old:
                 new = mats["DRESS1_Wool"]
+            elif "Leather" in old:
+                new = mats["DRESS1_Leather"]
             elif "GoldTrim" in old:
                 new = mats["DRESS1_GoldTrim"]
             elif "Gold" in old:

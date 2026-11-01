@@ -6,7 +6,7 @@ Modelli di personaggi per videogiochi, lavorati per essere pronti al motore.
 |---|---|---|
 | **BOSS1** — Demone Cornuto | game-ready: 80k tri, rig 34 ossa, 5 animazioni, PBR 2K + AO, LOD1/LOD2, scala 2,90 m | [BOSS1/](BOSS1/) → `BOSS1.blend`, `BOSS1.glb`, `BOSS1.fbx`, `BOSS1_LOD1.glb`, `BOSS1_LOD2.glb` |
 | **ELFO1** — Elfo Runico | game-ready: 55k tri, rig 43 ossa, 5 animazioni, PBR 2K + AO + rune emissive, LOD1/LOD2, scala 1,85 m | [ELFO1/](ELFO1/) → `ELFO1.blend`, `ELFO1.glb`, `ELFO1.fbx`, `ELFO1_LOD1.glb`, `ELFO1_LOD2.glb` |
-| **DRESS1** — Gonna cerimoniale | game-ready: 79k tri, 4 materiali PBR con AO bakeata, LOD1/LOD2, scala 0,96 m — **solo il capo**, senza gambe né piedi | [DRESS1/](DRESS1/) → `DRESS1.blend`, `DRESS1.glb`, `DRESS1.fbx`, `DRESS1_LOD1.glb`, `DRESS1_LOD2.glb` |
+| **DRESS1** — Gonna cerimoniale | game-ready: 79k tri, 5 materiali PBR con AO bakeata, LOD1/LOD2, scala 0,93 m — **solo il capo**, senza gambe né piedi | [DRESS1/](DRESS1/) → `DRESS1.blend`, `DRESS1.glb`, `DRESS1.fbx`, `DRESS1_LOD1.glb`, `DRESS1_LOD2.glb` |
 
 ## BOSS1 in breve
 
@@ -31,18 +31,25 @@ versione (80k adattivi): `BOSS1/preview/detail_compare.png`.
 - **solo la gonna**: gambe, piedi, caviglie fasciate e sandali sono stati
   rimossi, così l'asset si monta su qualsiasi personaggio; una fodera interna
   chiude il capo, quindi da sotto non si vede il guscio vuoto
-- gonna avorio a **31 pieghe a coltello** (faccia quasi dritta, cresta tonda,
-  valle ad angolo vivo) con profondità irregolare; sei falde sovrapposte con
-  punte lunghe e sfalsate e una lingua centrale sotto la staffa
-- fascia annodata con tre teli che si incrociano davanti, bordo superiore
-  arrotolato, **cintura scura diagonale** e **anello d'ottone** con rivetti
-- staffa centrale larga 6,3 cm, incollata alle pieghe, con catena di simboli
-  dorati ricostruita dal disegno (rombo, cerchio con croce, fascia a pettine,
-  doppio V) e punta a V con intaglio centrale; scialli laterali in lana con
-  bordi dorati e sigilli
-- **4 materiali PBR**, texture 1K e AO bakeata, ricami dorati sottili
-- **79.224 triangoli**, LOD1 31.758 e LOD2 11.407 con budget separati per
-  stoffa, stoffa con bordi vivi e ricami; origine a terra, orlo a 12 cm
+- gonna avorio a **20 pieghe morbide** (cresta tonda e larga, valle stretta in
+  ombra, fino a 4,6 cm all'orlo) su una silhouette **piena** misurata sul
+  disegno: svasatura decisa sotto il fianco, discesa quasi cilindrica e orlo a
+  ~1,8 volte la vita (60 cm di larghezza)
+- due grandi veli frontali con punte lunghe e sfalsate si aprono ai lati di
+  una **tacca centrale profonda**, dove scende la **lingua di lino** che porta
+  il **rombo dorato con la croce**: il simbolo più grande del disegno
+- fascia annodata con teli che si incrociano davanti, bordo superiore
+  arrotolato, **cintura di cuoio diagonale** e **anello d'ottone** leggermente
+  schiacciato
+- staffa centrale di **cuoio bruno** (~6,8 cm) che dall'anello scende nuda
+  fino a metà coscia, con un piccolo rombo, una barretta, l'asta lunga col
+  rombo al centro e il filetto dorato sui bordi; scialli laterali in lana con
+  bordi dorati e sigilli a metà pannello
+- **5 materiali PBR** (lino, lana, cuoio, ottone, oro dei ricami), texture 1K
+  e AO bakeata
+- **79.224 triangoli**, LOD1 31.758 e LOD2 11.406 con budget separati per
+  stoffa, stoffa con bordi vivi e ricami; origine a terra, punta più bassa a
+  15 cm
 - QA degli export in [`DRESS1/QA.md`](DRESS1/QA.md), pipeline e test in
   [`DRESS1/tools/`](DRESS1/tools/)
 

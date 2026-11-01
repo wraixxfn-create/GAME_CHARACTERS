@@ -100,6 +100,30 @@ class ShapeTests(unittest.TestCase):
         self.assertGreater(dress.strap_bottom_z(0.0),
                            dress.strap_bottom_z(0.12) - 0.002)
 
+    def test_strap_chain_and_tongue_diamond_follow_the_reference(self):
+        # Nel disegno il cuoio e' nudo nel tratto alto (niente simboli sopra
+        # z~0,83), i simboli piccoli stanno a meta' discesa, l'asta lunga e'
+        # sottile e scende fino a z~0,52, e il rombo grande — il simbolo piu'
+        # grande del disegno — sta sulla lingua, sotto la punta della staffa.
+        gold = [o for o in dress.strap_gold() if "Edge" not in o.name]
+        self.assertTrue(gold)
+        tops = [max(v.co.z for v in o.data.vertices) for o in gold]
+        bots = [min(v.co.z for v in o.data.vertices) for o in gold]
+        self.assertLess(max(tops), 0.84)
+        self.assertLess(min(bots), 0.53)
+        tongue = dress.build_tongue_gold(dress.lappet_panel("Lap_Tongue"))
+        self.assertTrue(tongue)
+        widest = max(max(v.co.x for v in o.data.vertices)
+                     - min(v.co.x for v in o.data.vertices)
+                     for o in tongue)
+        # il rombo e' il pezzo d'oro piu' largo del capo
+        self.assertGreater(widest, 0.045)
+        for ob in tongue:
+            zs = [v.co.z for v in ob.data.vertices]
+            # e sta sotto la punta della staffa, sulla lingua
+            self.assertLess(max(zs), dress.STRAP_TIP_Z + 0.004)
+            self.assertGreater(min(zs), 0.36)
+
     def test_lappets_follow_the_skirt_pleats(self):
         # I veli sono la stessa stoffa pieghettata della gonna: se smettono di
         # seguirla diventano cartone (era il problema della prima revisione).
@@ -169,7 +193,9 @@ class LayerTests(unittest.TestCase):
     def test_strap_sits_in_front_of_the_white_layers(self):
         # Ray-cast at both edges as well as the center. This catches the white
         # patches that previously pierced the dark ribbon just below the belt.
-        for z in (0.43, 0.5, 0.6, 0.7, 0.8, 0.9, 0.94, 0.96):
+        # La staffa ora finisce a meta' coscia (sotto continua la lingua):
+        # i campioni stanno tutti dentro il nastro di cuoio.
+        for z in (0.56, 0.62, 0.70, 0.78, 0.86, 0.92, 0.96):
             half = dress.strap_halfwidth(z)
             for fraction in (-0.8, -0.4, 0, 0.4, 0.8):
                 origin = Vector((fraction * half, -1.0, z))

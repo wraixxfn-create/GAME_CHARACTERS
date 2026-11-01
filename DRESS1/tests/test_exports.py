@@ -12,7 +12,8 @@ from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 
 ROOT = Path(__file__).resolve().parents[1]
-MATERIALS = {"DRESS1_Linen", "DRESS1_Wool", "DRESS1_Gold", "DRESS1_GoldTrim"}
+MATERIALS = {"DRESS1_Linen", "DRESS1_Wool", "DRESS1_Leather", "DRESS1_Gold",
+             "DRESS1_GoldTrim"}
 
 
 def only_mesh():
@@ -52,13 +53,15 @@ class ExportTests(unittest.TestCase):
 
                 bpy.context.view_layer.update()
                 tree = BVHTree.FromObject(ob, bpy.context.evaluated_depsgraph_get())
-                for z in (0.43, 0.5, 0.6, 0.7, 0.8, 0.9, 0.94, 0.96):
+                # La staffa di cuoio finisce a meta' coscia (z ~ 0,46): i
+                # campioni restano dentro il nastro.
+                for z in (0.58, 0.66, 0.74, 0.82, 0.90, 0.96):
                     for x in (-0.018, -0.009, 0, 0.009, 0.018):
                         _, _, index, _ = tree.ray_cast(Vector((x, -1.0, z)),
                                                        Vector((0, 1, 0)), 2.0)
                         self.assertIsNotNone(index, (name, x, z))
                         mat = ob.data.materials[ob.data.polygons[index].material_index]
-                        self.assertIn(mat.name, {"DRESS1_Wool", "DRESS1_GoldTrim"},
+                        self.assertIn(mat.name, {"DRESS1_Leather", "DRESS1_GoldTrim"},
                                       (name, x, z, mat.name))
 
     def test_fbx_imports_from_a_standalone_copy(self):

@@ -1,10 +1,13 @@
-"""DRESS1 — costruzione della geometria (dettagli dalla reference).
+"""DRESS1 — costruzione della geometria (dettagli dalla reference, rev. 3).
 
 Il capo e' ridisegnato da zero seguendo il concept: gonna in lino avorio a
 **pieghe morbide** profonde (creste tonde, valli strette in ombra), silhouette
-ad A che si allarga regolare fino all'orlo a punte asimmetriche, fascia
-incrociata in vita con anello d'ottone, staffa scura liscia con simboli
-geometrici dorati e scialli scuri stretti sui fianchi con rune.
+piena che si apre sotto il fianco e poi scende quasi dritta (misurata sul
+disegno: a meta' altezza la gonna e' gia' larga come al 90% dell'orlo, con un
+lieve rientro e una riacceleratura finale), fascia incrociata in vita con
+anello d'ottone, staffa di cuoio che dal nodo scende **nuda** fino a meta'
+coscia e una lingua di lino che prosegue sotto la punta portando il rombo
+dorato piu' grande del disegno, scialli scuri stretti sui fianchi con sigilli.
 
 Questo e' il **solo capo**: gambe, piedi, caviglie e sandali sono stati tolti,
 cosi' la gonna resta un asset di abbigliamento da montare su un personaggio.
@@ -20,9 +23,11 @@ indossato: l'origine e' al suolo, sotto la gonna.
 
 ```
 z = 1.080  bordo alto della fascia (ai fianchi)
-z = 1.021  cintura scura + anello
+z = 1.021  cintura di cuoio + anello
 z = 0.952  fondo della fascia
 z = 0.964  attacco della gonna
+z = 0.530  spalle della staffa (angoli esterni)
+z = 0.462  punta della staffa: sotto inizia la lingua col rombo
 z = 0.300  orlo medio (falde piu' lunghe sotto)
 z = 0.196  fondo della fodera interna
 z = 0.000  suolo (origine, dove poggerebbero i piedi)
@@ -53,26 +58,28 @@ WAIST_RY = 0.126
 
 SKIRT_TOP_Z = 0.964
 
-# (z, rx, ry) — profilo ad A: stretto in vita, poi discesa quasi lineare.
-# Nella reference la gonna non si gonfia sui fianchi ne' rientra sul fondo:
-# si allarga in modo regolare e monotono fino all'orlo, dove la larghezza e'
-# circa 1,7 volte la vita. Il vecchio profilo a campana (massimo a meta'
-# coscia e rientro sul fondo) leggeva come palloncino, non come lino appeso.
+# (z, rx, ry) — profilo pieno, misurato sul disegno riga per riga.
+# La reference non e' una A stretta: sotto il fianco la gonna si apre in
+# fretta (a meta' altezza e' gia' al 90% della larghezza dell'orlo) e poi
+# scende quasi cilindrica, con un lieve rientro attorno ai 2/3 e una
+# riacceleratura sugli ultimi centimetri. L'orlo sta a circa 1,8 volte la
+# vita (1,9-2,0 contando le creste delle pieghe), come nel disegno dove la
+# gonna occupa in larghezza tre quarti della sua altezza.
 PROFILE = [
     (0.964, 0.150, 0.126),
     (0.900, 0.170, 0.143),
-    (0.820, 0.188, 0.158),
-    (0.740, 0.201, 0.169),
-    (0.660, 0.211, 0.177),
-    (0.580, 0.219, 0.184),
-    (0.500, 0.226, 0.190),
-    (0.430, 0.231, 0.194),
-    (0.370, 0.235, 0.198),
-    (0.320, 0.238, 0.200),
-    (0.270, 0.241, 0.203),
-    (0.220, 0.243, 0.205),
-    (0.170, 0.245, 0.206),
-    (0.130, 0.246, 0.207),
+    (0.820, 0.192, 0.161),
+    (0.740, 0.207, 0.174),
+    (0.660, 0.220, 0.185),
+    (0.580, 0.245, 0.205),
+    (0.500, 0.256, 0.214),
+    (0.430, 0.258, 0.216),
+    (0.370, 0.254, 0.213),
+    (0.320, 0.256, 0.214),
+    (0.270, 0.262, 0.219),
+    (0.220, 0.266, 0.222),
+    (0.170, 0.268, 0.224),
+    (0.130, 0.268, 0.224),
 ]
 
 
@@ -370,7 +377,7 @@ def loft(name, sections, rings=24, cap_bottom=True, cap_top=True):
 # --------------------------------------------------------------------------
 
 PLEAT_N = 20          # pieghe morbide lungo tutto il giro
-PLEAT_DEPTH = 0.042   # profondita' cresta-valle all'orlo (m)
+PLEAT_DEPTH = 0.046   # profondita' cresta-valle all'orlo (m)
 
 
 def drape_fold(x):
@@ -577,9 +584,13 @@ class Panel:
             sd = skirt_disp(a, z) if self.layer != "under" else 0.0
         # Solchi verticali delicati, modellati nella stoffa e non dipinti.
         # Seguono lentamente la caduta del lembo, lasciando puliti gli orli.
+        # Sulla lingua i solchi corrono vicino ai bordi: il centro resta liscio
+        # perche' e' il cartiglio del rombo dorato, come nel disegno.
         creases = 0.0
         if self.name.startswith("Lap_") and self.follow:
-            for center in (0.29, 0.70):
+            centers = ((0.13, 0.87) if self.name == "Lap_Tongue"
+                       else (0.29, 0.70))
+            for center in centers:
                 center += 0.018 * math.sin(v * 3.0 + self.seed)
                 creases -= (0.0030 * math.exp(-((u - center) / 0.035) ** 2)
                             * smoothstep(0.03, 0.18, v) * fade)
@@ -640,32 +651,25 @@ def panel(name, ang_table, z_table, layer, width_table=None, tip=0.0,
     return pnl.build(nu, nv, thickness)
 
 
-def build_lappets():
-    """Veli avorio sovrapposti: la gonna "a punte" del concept.
+def lappet_defs():
+    """Lembi sovrapposti: la gonna \"a punte\" del concept.
 
-    Nel disegno la gonna non finisce con un orlo dritto: davanti scendono
-    **veli** sovrapposti, ognuno chiuso da una V netta e sfalsata, e sotto la
-    staffa resta una lingua centrale piu' lunga. I veli sono la stessa stoffa
-    pieghettata della gonna, quindi seguono la sua superficie (``follow=1``)
-    con un margine costante: le creste dei veli stanno esattamente sopra le
-    creste della gonna e non nasce nessun incrocio.
-
-    La lingua centrale e' stretta di proposito: la staffa scura la copre quasi
-    tutta, e sotto la punta della staffa se ne vede solo l'estremo, come nel
-    disegno.
+    Nel disegno il davanti non e' un orlo continuo: due veli larghi
+    coprono i fianchi lasciando **aperto** il centro (una tacca profonda
+    sale fin quasi all'attacco), e nella tacca scende la lingua di lino
+    che porta il rombo dorato. Le punte lunghe davanti scendono sfalsate
+    fin quasi alla caviglia, come nel disegno; i due veli principali sono
+    larghi quasi 70 gradi ciascuno e si fermano ai lati della lingua.
     """
-    R = math.radians
-    defs = [
+    return [
         # nome, angolo alto, angolo basso, larghezza alta, larghezza bassa,
         #       fondo, strato, punta, seed, sollevamento angoli
-        ("Lap_Tongue", -4, 5, 8, 7, 0.210, "lap3", 0.085, 1.4, 0.012),
-        # Due veli larghissimi: coprono quasi tutto il davanti e si
-        # sovrappongono al centro, cosi' l'orlo e' continuo. Nella reference
-        # le punte davanti sono le piu' lunghe e scendono sfalsate.
-        ("Lap_FrontL", -20, -27, 38, 32, 0.272, "lapB", 0.138, 0.6, 0.048),
-        ("Lap_FrontR", 23, 30, 37, 31, 0.262, "lap", 0.132, 2.1, 0.046),
-        ("Lap_MidL", -58, -67, 22, 19, 0.330, "lap2", 0.118, 4.4, 0.034),
-        ("Lap_MidR", 60, 68, 21, 18, 0.318, "lap3", 0.112, 5.8, 0.032),
+        # la lingua centrale: larga e lunga, porta il rombo dorato
+        ("Lap_Tongue", -5, 6, 14, 11, 0.210, "lap3", 0.035, 1.3, 0.010),
+        # i due veli larghi del davanti: si aprono a ventaglio e lasciano
+        # libera la striscia centrale della lingua
+        ("Lap_FrontL", -36, -50, 24, 34.5, 0.255, "lapB", 0.100, 0.6, 0.040),
+        ("Lap_FrontR", 36, 50, 24, 34.5, 0.248, "lap", 0.096, 2.1, 0.040),
         ("Lap_SideL", 82, 91, 17, 15, 0.400, "lap2", 0.096, 3.7, 0.026),
         ("Lap_SideR", -82, -92, 17, 15, 0.388, "lap3", 0.092, 5.2, 0.024),
         ("Lap_BackL", 152, 161, 26, 23, 0.330, "lapB", 0.112, 6.6, 0.030),
@@ -673,8 +677,28 @@ def build_lappets():
         # telo diagonale che attraversa la vita e scende a sinistra
         ("Lap_WaistL", -46, -34, 25, 21, 0.400, "lap", 0.130, 8.4, 0.026),
     ]
+
+
+def lappet_panel(name):
+    """Ricrea il pannello parametrico di un lembo (serve ai ricami)."""
+    for d in lappet_defs():
+        if d[0] == name:
+            (_, a0, a1, w0, w1, zbot, layer, tip, seed, lift) = d
+            return Panel(
+                name, [(0.0, math.radians(a0)), (1.0, math.radians(a1))],
+                [(0.0, SKIRT_TOP_Z + 0.002), (1.0, zbot)], layer,
+                width_table=[(0.0, math.radians(w0)), (1.0, math.radians(w1))],
+                tip=tip, tip_pow=0.62, seed=seed,
+                pleat_n=13, pleat_amp=0.005, corner_lift=lift,
+                blend_top=0.92, top_taper=0.90, edge_roll=0.0030,
+                follow=1.0, clearance=(0.0, 0.004))
+    raise KeyError(name)
+
+
+def build_lappets():
+    R = math.radians
     objs = []
-    for name, a0, a1, w0, w1, zbot, layer, tip, seed, lift in defs:
+    for name, a0, a1, w0, w1, zbot, layer, tip, seed, lift in lappet_defs():
         objs.append(panel(
             name, [(0.0, R(a0)), (1.0, R(a1))],
             [(0.0, SKIRT_TOP_Z + 0.002), (1.0, zbot)], layer,
@@ -907,12 +931,18 @@ def build_ring():
     """Fibbia d'ottone: un cerchio pulito con la placchetta di attacco."""
     c = RING_C
     # Nella reference l'anello e' un cerchio d'ottone liscio: niente rivetti
-    # ne' controanello in rilievo, solo il nastro scuro che si vede nel foro.
-    objs = [torus("BeltRing", c, (0.0, 1.0, 0.0), 0.0322, 0.0046,
-                  seg_major=56, seg_minor=12, squash=1.0, flat=0.46)]
+    # ne' controanello in rilievo, solo il nastro di cuoio nel foro. Nel
+    # disegno e' leggermente schiacciato (piu' largo che alto) e un po'
+    # piu' piccolo di come era stato modellato.
+    ring = torus("BeltRing", c, (0.0, 1.0, 0.0), 0.0300, 0.0042,
+                 seg_major=56, seg_minor=12, squash=1.0, flat=0.46)
+    for v in ring.data.vertices:
+        v.co.z = c.z + (v.co.z - c.z) * 0.82
+    ring.data.update()
+    objs = [ring]
     # placchetta di attacco fra anello e staffa
-    objs.append(ellipsoid("Buckle_Clasp", c + Vector((0.0, 0.0014, -0.0330)),
-                          (0.0086, 0.0034, 0.0060), segs=16, rings=8))
+    objs.append(ellipsoid("Buckle_Clasp", c + Vector((0.0, 0.0014, -0.0310)),
+                          (0.0086, 0.0034, 0.0058), segs=16, rings=8))
     return objs
 
 
@@ -921,8 +951,8 @@ def build_ring():
 # --------------------------------------------------------------------------
 
 STRAP_TOP_Z = 1.0512
-STRAP_SHOULDER_Z = 0.398
-STRAP_TIP_Z = 0.322
+STRAP_SHOULDER_Z = 0.530
+STRAP_TIP_Z = 0.462
 
 
 def strap_halfwidth(z):
@@ -933,8 +963,8 @@ def strap_halfwidth(z):
     """
     t = min(1.0, max(0.0, (STRAP_TOP_Z - z) /
                          (STRAP_TOP_Z - STRAP_TIP_Z)))
-    return lerp_table([(0.00, 0.0272), (0.16, 0.0300), (0.55, 0.0316),
-                       (0.82, 0.0306), (0.93, 0.0280), (1.00, 0.0224)], t)
+    return lerp_table([(0.00, 0.0288), (0.16, 0.0316), (0.55, 0.0334),
+                       (0.82, 0.0324), (0.93, 0.0298), (1.00, 0.0240)], t)
 
 
 def strap_point(x, z, off=0.0):
@@ -980,7 +1010,8 @@ def strap_bottom_z(side):
     """Bordo inferiore della staffa.
 
     Come nel disegno la punta non e' un semplice V: al centro c'e' un piccolo
-    intaglio che la apre in due lobe, e i due angoli esterni salgono di netto.
+    intaglio che la apre in due lobi, e i due angoli esterni salgono di netto.
+    Sotto la punta resta la lingua di lino col rombo dorato.
     """
     s = abs(side)
     z = STRAP_TIP_Z + (STRAP_SHOULDER_Z - STRAP_TIP_Z) * (s ** 1.9)
@@ -1026,7 +1057,7 @@ def _strap_frame(x, z, d=0.0012):
     return n, ea
 
 
-def _gold2d(pts2d, width, off=0.0030, thick=0.0004):
+def _gold2d(pts2d, width, off=0.0030, thick=0.0004, name="StrapGold"):
     """Ricamo dorato **appoggiato** sulla staffa.
 
     Il nastro e' una griglia, non due vertici: la staffa segue le pieghe della
@@ -1053,25 +1084,26 @@ def _gold2d(pts2d, width, off=0.0030, thick=0.0004):
     for i in range(m - 1):
         a = i * 2
         faces.append((a, a + 1, a + 3, a + 2))
-    ob = mesh_from_pydata("StrapGold", verts, faces, smooth=True)
+    ob = mesh_from_pydata(name, verts, faces, smooth=True)
     from common import add_solidify
     add_solidify(ob, thick, offset=1.0)
     return ob
 
 
 def strap_gold():
-    """Ricamo centrale della staffa, ricostruito dal disegno.
+    """Catena dorata della staffa, ricostruita dal disegno.
 
-    Le posizioni sono espresse in frazione della lunghezza decorata, cosi' il
-    motivo resta corretto anche quando la staffa si allunga. Dall'alto: asta
-    sottile, rombo, cerchio con traversa e croce (il simbolo piu' grande del
-    disegno), asta lunga con barretta, rombo, asta, fascia a pettine e doppio
-    V della punta. Il filetto dorato corre anche sui due bordi.
+    Nel disegno il cuoio e' **nudo** dalla fibbia fino a un terzo della
+    discesa: niente simboli subito sotto l'anello. Poi vengono un piccolo
+    rombo, una seconda marcatura, un'asta lunga e sottile con un rombo al
+    centro — e il simbolo piu' grande, il rombo col cartiglio, sta sotto la
+    punta, sulla lingua di lino (``build_tongue_gold``). Le posizioni sono
+    espresse in frazione della lunghezza del nastro.
     """
     objs = []
 
-    def stroke(points, width=0.0022):
-        objs.append(_gold2d(points, width))
+    def stroke(points, width=0.0022, name="StrapGold"):
+        objs.append(_gold2d(points, width, name=name))
 
     def diamond(cz, rx, rz, width=0.0024):
         stroke([(0, cz + rz), (rx, cz), (0, cz - rz),
@@ -1081,49 +1113,93 @@ def strap_gold():
     tip = STRAP_TIP_Z
 
     def Z(f):
-        """Frazione della lunghezza decorata -> quota."""
+        """Frazione della lunghezza del nastro -> quota."""
         return top + (tip - top) * f
 
-    # --- parte alta, appena sotto l'anello
-    stroke([(0.0, Z(0.085)), (0.0, Z(0.140))], 0.0019)
-    diamond(Z(0.172), 0.0072, 0.0135)
-    # --- cerchio con traversa e croce (simbolo centrale, piu' grande)
-    stroke([(0.0, Z(0.200)), (0.0, Z(0.228))], 0.0018)
-    r = 0.0218
-    cz = Z(0.286)
-    circle = [(r * math.cos(TAU * i / 64),
-               cz + r * math.sin(TAU * i / 64)) for i in range(65)]
-    stroke(circle, 0.0026)
-    stroke([(-0.0150, cz - r * 0.98), (0.0150, cz - r * 0.98)], 0.0025)
-    stroke([(0.0, cz - r), (0.0, Z(0.372))], 0.0023)
-    stroke([(-0.0105, Z(0.338)), (0.0105, Z(0.338))], 0.0021)
-    # --- asta lunga con barretta
-    stroke([(0.0, Z(0.378)), (0.0, Z(0.512))], 0.0023)
-    stroke([(-0.0100, Z(0.452)), (0.0100, Z(0.452))], 0.0019)
-    diamond(Z(0.544), 0.0092, 0.0150)
-    stroke([(0.0, Z(0.566)), (0.0, Z(0.660))], 0.0023)
-    # --- fascia decorata sopra la punta: barrette verticali fra due righe
-    halfw = strap_halfwidth(Z(0.690)) - 0.0068
-    stroke([(-halfw, Z(0.690)), (halfw, Z(0.690))], 0.0021)
-    for k in range(-4, 5):
-        x = k * halfw / 4.4
-        stroke([(x, Z(0.695)), (x, Z(0.744))], 0.0016)
-    stroke([(-halfw, Z(0.748)), (halfw, Z(0.748))], 0.0021)
-    # --- doppio V della punta, contenuto nel nastro
-    hw_v = strap_halfwidth(Z(0.930)) - 0.0050
-    stroke([(-hw_v, Z(0.800)), (0.0, Z(0.930)), (hw_v, Z(0.800))], 0.0026)
-    stroke([(-hw_v * 0.74, Z(0.818)), (0.0, Z(0.922)),
-            (hw_v * 0.74, Z(0.818))], 0.0020)
+    # --- il cuoio resta nudo nel tratto alto, come nel disegno
+    # --- piccolo rombo a meta' discesa (z ~ 0,80)
+    diamond(Z(0.425), 0.0056, 0.0105, 0.0020)
+    # --- seconda marcatura: una barretta (z ~ 0,71)
+    stroke([(-0.0085, Z(0.575)), (0.0085, Z(0.575))], 0.0021)
+    # --- asta lunga e sottile (z ~ 0,64-0,52 nel disegno) con rombo al centro
+    stroke([(0.0, Z(0.700)), (0.0, Z(0.895))], 0.0016)
+    diamond(Z(0.797), 0.0046, 0.0082, 0.0018)
     # --- filetto dorato lungo i due bordi del nastro: nella reference e' un
     #     filo sottile, non un bordo dipinto
     for side in (-1, 1):
         edge = []
-        z = Z(0.055)
-        while z > Z(0.800):
+        z = Z(0.05)
+        while z > Z(0.97):
             hw = strap_halfwidth(z)
-            edge.append((side * (hw - 0.0046), z))
-            z -= 0.010
-        stroke(edge, 0.0013)
+            edge.append((side * (hw - 0.0044), z))
+            z -= 0.008
+        stroke(edge, 0.0013, name="StrapGoldEdge")
+    return objs
+
+
+# --------------------------------------------------------------------------
+# il rombo dorato sulla lingua
+# --------------------------------------------------------------------------
+
+def _tongue_v_for_z(pnl, u, z_target):
+    """``v`` del punto della lingua che sta alla quota ``z_target``.
+
+    La quota del lembo cala in modo monotono con ``v``: una bisezione e'
+    piu' robusta dell'inversione analitica (il tip piega la superficie).
+    """
+    lo, hi = 0.0, 1.0
+    for _ in range(36):
+        mid = 0.5 * (lo + hi)
+        _, z, _ = pnl.params(u, mid)
+        if z > z_target:
+            lo = mid
+        else:
+            hi = mid
+    return 0.5 * (lo + hi)
+
+
+def build_tongue_gold(pnl):
+    """Il rombo dorato grande del disegno, sulla lingua sotto la staffa.
+
+    Nella reference il nastro di cuoio finisce a meta' coscia e sotto la
+    punta resta una lingua di lino che scende fin quasi all'orlo: sul suo
+    cartiglio campeggia il **simbolo piu' grande del disegno**, un rombo con
+    una croce interna. I tratti vengono campionati sulla superficie della
+    lingua (che segue le pieghe della gonna) e sollevati lungo la normale.
+    """
+    objs = []
+
+    def path(name, pts_uz, width=0.0028):
+        uv = []
+        for (u0, z0), (u1, z1) in zip(pts_uz, pts_uz[1:]):
+            count = max(2, int(math.ceil(abs(u1 - u0) / 0.02
+                                         + abs(z1 - z0) / 0.006)))
+            for i in range(count):
+                u = u0 + (u1 - u0) * i / count
+                z = z0 + (z1 - z0) * i / count
+                uv.append((u, _tongue_v_for_z(pnl, u, z)))
+        u_end, z_end = pts_uz[-1]
+        uv.append((u_end, _tongue_v_for_z(pnl, u_end, z_end)))
+        normals = [pnl.nrm(u, v) for u, v in uv]
+        pts = [pnl.pt(u, v) + n * 0.0026 for (u, v), n in zip(uv, normals)]
+        objs.append(ribbon_n(name, pts, normals, width, thickness=0.0005))
+
+    # centro e semiassi del rombo, in quota e in frazione della larghezza
+    z_c = 0.410
+    rz = 0.033
+    v_c = _tongue_v_for_z(pnl, 0.5, z_c)
+    w_world = (pnl.pt(1.0, v_c) - pnl.pt(0.0, v_c)).length
+    rx = 0.026
+    du = min(0.36, rx / max(w_world, 1e-6))
+    # contorno del rombo
+    path("TongueDiamond",
+         [(0.5, z_c + rz), (0.5 + du, z_c), (0.5, z_c - rz),
+          (0.5 - du, z_c), (0.5, z_c + rz)], 0.0028)
+    # croce interna
+    path("TongueCrossV", [(0.5, z_c + rz * 0.58), (0.5, z_c - rz * 0.58)],
+         0.0018)
+    path("TongueCrossH", [(0.5 - du * 0.58, z_c), (0.5 + du * 0.58, z_c)],
+         0.0018)
     return objs
 
 
@@ -1166,19 +1242,20 @@ def build_drape_runes(drapes):
              0.0019 if big else 0.0016)
         if not big:
             continue
-        # gancio a spirale squadrata (il sigillo della reference)
+        # gancio a spirale squadrata: nel disegno i sigilli dorati degli
+        # scialli stanno a meta' del pannello (z ~ 0,77-0,70), non in alto
         path(pnl, name + "_rune",
-             [(0.38, 0.185), (0.38, 0.335), (0.63, 0.335),
-              (0.63, 0.235), (0.485, 0.235)], 0.0024)
+             [(0.38, 0.400), (0.38, 0.545), (0.63, 0.545),
+              (0.63, 0.450), (0.485, 0.450)], 0.0024)
         # asta sotto il gancio
-        path(pnl, name + "_stem", [(0.38, 0.185), (0.38, 0.135)], 0.0020)
-        # rombo piu' in basso
+        path(pnl, name + "_stem", [(0.38, 0.400), (0.38, 0.352)], 0.0020)
+        # rombo piu' in basso (z ~ 0,69-0,62)
         path(pnl, name + "_diamond",
-             [(0.50, 0.545), (0.635, 0.625), (0.50, 0.705),
-              (0.365, 0.625), (0.50, 0.545)], 0.0022)
+             [(0.50, 0.575), (0.635, 0.648), (0.50, 0.720),
+              (0.365, 0.648), (0.50, 0.575)], 0.0022)
         # due barrette ai lati del rombo
         for u in (0.30, 0.70):
-            path(pnl, name + "_bar", [(u, 0.600), (u, 0.650)], 0.0016)
+            path(pnl, name + "_bar", [(u, 0.622), (u, 0.672)], 0.0016)
     return objs
 
 
@@ -1188,13 +1265,14 @@ def build_drape_runes(drapes):
 
 PART_MATERIAL = {
     "fabric": "DRESS1_Linen",
-    "dark": "DRESS1_Wool",
+    "wool": "DRESS1_Wool",
+    "leather": "DRESS1_Leather",
     "gold": "DRESS1_Gold",
     "gold_trim": "DRESS1_GoldTrim",
 }
 
 
-KEEP_GROUPS = ("dark", "gold", "gold_trim")
+KEEP_GROUPS = ("wool", "leather", "gold", "gold_trim")
 
 
 def tag_group(objs, name):
@@ -1228,25 +1306,27 @@ def build_all():
     drapes, drape_panels = build_drapes()
     strap_body, strap_gold_parts = build_strap()
     sash = build_sash()
-    # I teli incrociati e la cintura sono stoffa, ma con bordi vivi e pochi
-    # centimetri di larghezza: la decimazione della gonna li sfrangerebbe.
-    # Vanno nel gruppo intermedio, decimato molto meno.
-    # I teli in croce sono lino, la cintura e' lana: prima questi due gruppi
-    # restavano senza materiale e nel render comparivano grigi (la cintura
-    # scura spariva del tutto sotto la fascia).
+    # I teli incrociati e la cintura sono stoffa/cuoio, ma con bordi vivi e
+    # pochi centimetri di larghezza: la decimazione della gonna li
+    # sfrangerebbe. Vanno nel gruppo intermedio, decimato molto meno.
+    # I teli in croce sono lino, la cintura e' lo stesso cuoio della staffa:
+    # nel disegno il nastro scuro passa dietro l'anello e prosegue nella
+    # staffa, ed e' piu' chiaro della lana degli scialli.
     mid_cloth = [o for o in sash if o.name.startswith("Sash_Cross")]
     mid_belt = build_belt()
     assign_material(mid_cloth, "DRESS1_Linen")
-    assign_material(mid_belt, "DRESS1_Wool")
+    assign_material(mid_belt, "DRESS1_Leather")
     mid = mid_cloth + mid_belt
 
     groups = {
         "fabric": (build_lining() + build_underskirt() + build_skirt()
                    + build_lappets()
                    + [o for o in sash if o.name not in {m.name for m in mid}]),
-        "dark": drapes + strap_body + build_buckle_back(),
+        "wool": drapes,
+        "leather": strap_body + build_buckle_back(),
         "gold": build_ring(),
-        "gold_trim": build_drape_runes(drape_panels) + strap_gold_parts,
+        "gold_trim": (build_drape_runes(drape_panels) + strap_gold_parts
+                      + build_tongue_gold(lappet_panel("Lap_Tongue"))),
     }
     all_objs = []
     for key, objs in groups.items():
