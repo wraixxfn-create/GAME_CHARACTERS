@@ -336,10 +336,10 @@ def linen_maps():
     h = cloth_map(TEX, seed=7, fiber=0.8)
     base = np.zeros((TEX, TEX, 3), np.float32)
     tone = 0.80 + 0.20 * h
-    # avorio caldo con variazioni di tono (la reference e' color carta)
-    base[..., 0] = 0.868 * tone
-    base[..., 1] = 0.836 * tone * 0.995
-    base[..., 2] = 0.775 * tone * 0.99
+    # avorio caldo con variazioni di tono (la reference e' color crema)
+    base[..., 0] = 0.882 * tone
+    base[..., 1] = 0.840 * tone * 0.995
+    base[..., 2] = 0.752 * tone * 0.99
     # macchie di usura
     wear = fbm(TEX, base_cells=3, octaves=5, seed=31)
     base *= (0.90 + 0.18 * wear)[..., None]

@@ -1,8 +1,10 @@
 """DRESS1 — costruzione della geometria (dettagli dalla reference).
 
-Il capo e' ridisegnato da zero seguendo il concept: gonna in lino avorio a pieghe
-**a coltello** fitte, fascia incrociata in vita con anello d'ottone, staffa scura
-con simboli geometrici dorati e scialli scuri sui fianchi con rune.
+Il capo e' ridisegnato da zero seguendo il concept: gonna in lino avorio a
+**pieghe morbide** profonde (creste tonde, valli strette in ombra), silhouette
+ad A che si allarga regolare fino all'orlo a punte asimmetriche, fascia
+incrociata in vita con anello d'ottone, staffa scura liscia con simboli
+geometrici dorati e scialli scuri stretti sui fianchi con rune.
 
 Questo e' il **solo capo**: gambe, piedi, caviglie e sandali sono stati tolti,
 cosi' la gonna resta un asset di abbigliamento da montare su un personaggio.
@@ -51,25 +53,26 @@ WAIST_RY = 0.126
 
 SKIRT_TOP_Z = 0.964
 
-# (z, rx, ry) — profilo a campana, svasatura dolce
 # (z, rx, ry) — profilo ad A: stretto in vita, poi discesa quasi lineare.
-# Nella reference la gonna non si gonfia sui fianchi: si allarga in modo
-# regolare fino all'orlo, dove la larghezza e' circa il doppio della vita.
+# Nella reference la gonna non si gonfia sui fianchi ne' rientra sul fondo:
+# si allarga in modo regolare e monotono fino all'orlo, dove la larghezza e'
+# circa 1,7 volte la vita. Il vecchio profilo a campana (massimo a meta'
+# coscia e rientro sul fondo) leggeva come palloncino, non come lino appeso.
 PROFILE = [
-    (0.964, 0.152, 0.128),
-    (0.900, 0.168, 0.142),
-    (0.820, 0.187, 0.157),
-    (0.740, 0.202, 0.169),
-    (0.660, 0.215, 0.179),
-    (0.580, 0.226, 0.187),
-    (0.500, 0.233, 0.193),
-    (0.430, 0.237, 0.196),
-    (0.370, 0.239, 0.198),
-    (0.320, 0.239, 0.198),
-    (0.270, 0.237, 0.196),
-    (0.220, 0.234, 0.194),
-    (0.170, 0.230, 0.191),
-    (0.130, 0.227, 0.188),
+    (0.964, 0.150, 0.126),
+    (0.900, 0.170, 0.143),
+    (0.820, 0.188, 0.158),
+    (0.740, 0.201, 0.169),
+    (0.660, 0.211, 0.177),
+    (0.580, 0.219, 0.184),
+    (0.500, 0.226, 0.190),
+    (0.430, 0.231, 0.194),
+    (0.370, 0.235, 0.198),
+    (0.320, 0.238, 0.200),
+    (0.270, 0.241, 0.203),
+    (0.220, 0.243, 0.205),
+    (0.170, 0.245, 0.206),
+    (0.130, 0.246, 0.207),
 ]
 
 
@@ -81,10 +84,10 @@ LAYER = {
     "base": 0.000,
     "drape": 0.031,      # scialli scuri: sopra i veli, sui fianchi
     "drape2": 0.034,
-    "lapB": 0.013,       # veli avorio, dal piu' basso al piu' alto
-    "lap": 0.017,
-    "lap2": 0.021,
-    "lap3": 0.025,
+    "lapB": 0.012,       # veli avorio, dal piu' basso al piu' alto
+    "lap": 0.016,
+    "lap2": 0.019,
+    "lap3": 0.022,
     "trim": 0.050,
     "strap": 0.058,
 }
@@ -157,15 +160,17 @@ def lerp_table(table, v):
 def hem_z(a):
     """Quota dell'orlo della gonna.
 
-    La gonna di base ha un orlo quasi continuo, appena mosso: nella reference
-    le punte lunghe e asimmetriche non vengono dal tessuto principale ma dalle
-    **falde** sovrapposte (vedi ``build_lappets``). Tenere l'orlo della gonna
-    regolare evita l'effetto "strappi" e lascia che siano le falde a disegnare
-    la silhouette a gradini.
+    La gonna di base ha un orlo mosso da tre lobi asimmetrici: nella reference
+    il fondo non e' una riga orizzontale ma una linea di punte e intacchi, e
+    le punte lunghe vengono dalle **falde** sovrapposte (vedi
+    ``build_lappets``). I lobi qui disegnano le campate fra una punta e
+    l'altra; tenere l'orlo troppo regolare faceva leggere le falde come
+    toppe applicate invece che come il fondo del tessuto.
     """
-    lobes = (0.030 * max(0.0, math.sin(a + 0.30)) ** 2.2
-             + 0.018 * max(0.0, math.sin(2.0 * a - 1.02)) ** 2.6)
-    return 0.238 - lobes
+    lobes = (0.034 * max(0.0, math.sin(a + 0.30)) ** 2.0
+             + 0.020 * max(0.0, math.sin(2.0 * a - 1.02)) ** 2.4
+             + 0.012 * max(0.0, math.sin(3.0 * a + 2.0)) ** 2.8)
+    return 0.252 - lobes
 
 
 # --------------------------------------------------------------------------
@@ -364,50 +369,50 @@ def loft(name, sections, rings=24, cap_bottom=True, cap_top=True):
 # gonna
 # --------------------------------------------------------------------------
 
-PLEAT_N = 31          # pieghe a coltello lungo tutto il giro
-PLEAT_DEPTH = 0.026   # profondita' cresta-valle all'orlo (m)
+PLEAT_N = 20          # pieghe morbide lungo tutto il giro
+PLEAT_DEPTH = 0.042   # profondita' cresta-valle all'orlo (m)
 
 
-def knife_fold(x, face=0.60, fall=0.26, crest=0.72):
-    """Profilo di una piega **a coltello**.
+def drape_fold(x):
+    """Profilo di una piega **morbida** di lino appeso.
 
-    La stoffa sale lungo la faccia visibile fino alla cresta arrotondata, poi
-    ricade di netto nella valle: e' la piega dei tessuti pressati del concept,
-    dove ogni valle e' una linea d'ombra sottile e ogni cresta una lama di
-    luce. Una sinusoide, per quanto irregolare, legge come stoffa gonfia e non
-    come lino piegato.
+    Nella reference le pieghe non sono pressate: sono campate di stoffa che
+    ricade, con la cresta tonda e larga e la valle stretta in ombra. Una
+    sinusoide pura avrebbe creste e valli della stessa larghezza (stoffa
+    gonfia); una piega a coltello avrebbe la faccia dritta (lino stirato).
+    Qui ``c`` e' una campana cosinusoidale e l'esponente < 1 allarga le
+    creste e stringe le valli in una linea d'ombra sottile, come nel disegno.
 
-    ``x`` va da 0 (fondo valle) a 1 (fondo valle successivo); ``face`` e' la
-    porzione di periodo occupata dalla faccia visibile, ``fall`` quella della
-    caduta. Il resto e' il fondo della valle, piatto e in ombra.
+    ``x`` va da 0 (cresta) a 1 (cresta successiva); la valle sta a 0.5.
     """
-    if x < face:
-        # esponente < 1: la valle e' un angolo vivo, la cresta resta tonda
-        return (x / face) ** crest
-    if x < face + fall:
-        return 1.0 - (x - face) / fall
-    return 0.0
+    c = 0.5 * (1.0 + math.cos(TAU * x))
+    return c ** 0.50
+
+
+# media del profilo su un periodo: centra la piega fra cresta e valle
+FOLD_MEAN = sum(drape_fold(i / 512.0) for i in range(512)) / 512.0
 
 
 def pleats(a, v, seed=0.0, n=PLEAT_N, amp=1.0, hem_fade=0.0):
     """Spostamento radiale delle pieghe (cresta +, valle -).
 
     ``amp`` e' la profondita' cresta-valle in metri; il valore restituito e'
-    in unita' di ``amp``. Le pieghe non sono tutte uguali: una armonica lenta
-    ne abbassa alcune, e una lieve deriva lungo la caduta evita il tubo
-    scanalato. Le valli restano allineate, quindi le linee d'ombra corrono
-    continue dalla vita all'orlo come nel disegno.
+    in unita' di ``amp``. Le pieghe non sono tutte uguali: due armoniche lente
+    ne abbassano alcune lungo il giro, e una lieve deriva verticale evita il
+    tubo scanalato. Le valli restano allineate, quindi le linee d'ombra
+    corrono continue dalla vita all'orlo come nel disegno.
     """
     n = max(2, int(n))
-    drift = 0.09 * math.sin(v * 2.6 + seed * 0.31) * smoothstep(0.03, 0.7, v)
+    drift = 0.10 * math.sin(v * 2.2 + seed * 0.31) * smoothstep(0.03, 0.7, v)
     phase = n * a + seed * 1.7 + drift * 2.0
     x = (phase / TAU) % 1.0
-    fold = knife_fold(x) - 0.56
+    fold = drape_fold(x) - FOLD_MEAN
     # pieghe di profondita' diversa: un ventaglio perfetto pare plastica
-    depth = 1.0 + 0.14 * math.cos(3.0 * a + seed * 0.7) \
-        + 0.07 * math.cos(7.0 * a - 0.4 + seed)
-    # alla vita le pieghe si stringono sotto la fascia: partono piatte
-    envelope = 0.14 + 0.86 * smoothstep(0.0, 0.28, v)
+    depth = 1.0 + 0.20 * math.cos(3.0 * a + seed * 0.7) \
+        + 0.09 * math.cos(7.0 * a - 0.4 + seed)
+    depth = max(0.35, depth)
+    # sotto la fascia la stoffa e' tirata: le pieghe nascono dolci
+    envelope = 0.22 + 0.78 * smoothstep(0.02, 0.34, v)
     if hem_fade:
         envelope *= 1.0 - hem_fade * smoothstep(0.90, 1.0, v)
     return amp * fold * depth * envelope
@@ -422,11 +427,11 @@ def skirt_disp(a, z):
     span = SKIRT_TOP_Z - hem_z(a)
     v = min(1.0, max(0.0, (SKIRT_TOP_Z - z) / max(span, 1e-6)))
     # la fascia tira il lino al centro davanti: li' le pieghe sono piu' basse
-    soft = 0.60 + 0.40 * (1.0 - math.exp(-(a / 0.62) ** 2))
+    soft = 0.52 + 0.48 * (1.0 - math.exp(-(a / 0.62) ** 2))
     f = pleats(a, v, 0.0, n=PLEAT_N, amp=PLEAT_DEPTH * soft)
-    # piegolina secondaria molto bassa: toglie l'effetto "lamelle"
-    f += 0.0011 * math.cos(a * 53.0 + v * 2.1) * smoothstep(0.20, 0.80, v)
-    f += 0.0008 * math.sin(a * 71.0 + v * 1.6) * smoothstep(0.10, 0.55, v)
+    # increspatura secondaria molto bassa: toglie l'effetto "tubo"
+    f += 0.0009 * math.cos(a * 41.0 + v * 2.1) * smoothstep(0.20, 0.80, v)
+    f += 0.0006 * math.sin(a * 57.0 + v * 1.6) * smoothstep(0.10, 0.55, v)
     return f
 
 
@@ -653,17 +658,18 @@ def build_lappets():
     defs = [
         # nome, angolo alto, angolo basso, larghezza alta, larghezza bassa,
         #       fondo, strato, punta, seed, sollevamento angoli
-        ("Lap_Tongue", -4, 5, 8, 7, 0.196, "lap3", 0.075, 1.4, 0.012),
+        ("Lap_Tongue", -4, 5, 8, 7, 0.210, "lap3", 0.085, 1.4, 0.012),
         # Due veli larghissimi: coprono quasi tutto il davanti e si
-        # sovrappongono al centro, cosi' l'orlo e' continuo.
-        ("Lap_FrontL", -20, -26, 36, 30, 0.266, "lapB", 0.120, 0.6, 0.040),
-        ("Lap_FrontR", 23, 29, 35, 29, 0.254, "lap", 0.114, 2.1, 0.038),
-        ("Lap_MidL", -58, -66, 21, 18, 0.330, "lap2", 0.100, 4.4, 0.026),
-        ("Lap_MidR", 60, 67, 20, 17, 0.318, "lap3", 0.096, 5.8, 0.024),
-        ("Lap_SideL", 82, 90, 16, 14, 0.400, "lap2", 0.080, 3.7, 0.020),
-        ("Lap_SideR", -82, -91, 16, 14, 0.388, "lap3", 0.076, 5.2, 0.018),
-        ("Lap_BackL", 152, 160, 25, 22, 0.330, "lapB", 0.096, 6.6, 0.022),
-        ("Lap_BackR", -152, -161, 24, 21, 0.344, "lap", 0.092, 7.3, 0.020),
+        # sovrappongono al centro, cosi' l'orlo e' continuo. Nella reference
+        # le punte davanti sono le piu' lunghe e scendono sfalsate.
+        ("Lap_FrontL", -20, -27, 38, 32, 0.272, "lapB", 0.138, 0.6, 0.048),
+        ("Lap_FrontR", 23, 30, 37, 31, 0.262, "lap", 0.132, 2.1, 0.046),
+        ("Lap_MidL", -58, -67, 22, 19, 0.330, "lap2", 0.118, 4.4, 0.034),
+        ("Lap_MidR", 60, 68, 21, 18, 0.318, "lap3", 0.112, 5.8, 0.032),
+        ("Lap_SideL", 82, 91, 17, 15, 0.400, "lap2", 0.096, 3.7, 0.026),
+        ("Lap_SideR", -82, -92, 17, 15, 0.388, "lap3", 0.092, 5.2, 0.024),
+        ("Lap_BackL", 152, 161, 26, 23, 0.330, "lapB", 0.112, 6.6, 0.030),
+        ("Lap_BackR", -152, -162, 25, 22, 0.344, "lap", 0.108, 7.3, 0.028),
         # telo diagonale che attraversa la vita e scende a sinistra
         ("Lap_WaistL", -46, -34, 25, 21, 0.400, "lap", 0.130, 8.4, 0.026),
     ]
@@ -694,13 +700,13 @@ def drape_specs():
     R = math.radians
     return [
         ("Drape_L", [(0.0, R(62)), (0.5, R(68)), (1.0, R(75))],
-         [(0.0, 0.944), (1.0, 0.470)], [(0.0, R(15.0)), (1.0, R(14.0))], 1.2),
+         [(0.0, 0.944), (1.0, 0.500)], [(0.0, R(13.0)), (1.0, R(11.5))], 1.2),
         ("Drape_R", [(0.0, R(-62)), (0.5, R(-68)), (1.0, R(-75))],
-         [(0.0, 0.944), (1.0, 0.458)], [(0.0, R(15.0)), (1.0, R(14.0))], 3.4),
+         [(0.0, 0.944), (1.0, 0.488)], [(0.0, R(13.0)), (1.0, R(11.5))], 3.4),
         ("Drape_L2", [(0.0, R(88)), (1.0, R(102))],
-         [(0.0, 0.928), (1.0, 0.486)], [(0.0, R(11)), (1.0, R(9.5))], 5.0),
+         [(0.0, 0.928), (1.0, 0.516)], [(0.0, R(9.5)), (1.0, R(8.0))], 5.0),
         ("Drape_R2", [(0.0, R(-88)), (1.0, R(-102))],
-         [(0.0, 0.928), (1.0, 0.482)], [(0.0, R(11)), (1.0, R(9.5))], 7.1),
+         [(0.0, 0.928), (1.0, 0.512)], [(0.0, R(9.5)), (1.0, R(8.0))], 7.1),
     ]
 
 
@@ -770,7 +776,10 @@ def sash_wrap(name, a0, a1, z0, z1, width, off, seed=0.0, taper=0.24,
         b = (1.0 - (2.0 * t) ** 2) ** 0.70
         crease = (0.00055 * math.cos(a * 27.0 + t * 2.6 + seed)
                   + 0.00035 * math.cos(a * 44.0 - t * 1.8 + seed * 1.7))
-        return waist_pt(a, z, off * (0.35 + 0.65 * env) + roll * b * env + crease)
+        # i bordi lunghi del telo rientrano nella fascia: un taglio vivo
+        # sollevato leggeva come una scheggia chiara appoggiata al nastro
+        return waist_pt(a, z, off * (0.35 + 0.65 * env) * (0.30 + 0.70 * b)
+                        + roll * b * env + crease)
     return cloth_grid(name, nu, nv, surf, thickness=thickness)
 
 
@@ -834,8 +843,8 @@ def build_sash():
     objs.append(sash_wrap("Sash_CrossB", -3.08, 3.08, 1.074, 0.954, 0.030,
                           0.0078, seed=3.1, taper=0.11, steep=2.9, nu=92,
                           nv=12, thickness=0.0))
-    objs.append(sash_wrap("Sash_CrossA", -3.02, 3.02, 0.958, 1.070, 0.032,
-                          0.0128, seed=0.9, taper=0.11, steep=2.9, nu=92,
+    objs.append(sash_wrap("Sash_CrossA", -3.02, 3.02, 0.948, 1.030, 0.026,
+                          0.0112, seed=0.9, taper=0.11, steep=2.9, nu=92,
                           nv=12, thickness=0.0))
     # seconda passata piu' stretta, visibile sul fianco destro della reference
     objs.append(sash_wrap("Sash_CrossC", 0.35, 2.75, 1.038, 0.962, 0.030,
@@ -845,14 +854,16 @@ def build_sash():
     objs.append(sash_wrap("Sash_CrossD", -0.30, -2.60, 0.988, 1.046, 0.026,
                           0.0030, seed=7.7, taper=0.26, nv=8, roll=0.0014,
                           nu=64, steep=1.7, thickness=0.0))
-    # nodo: fascio di stoffa stretto fra i due teli, appoggiato all'anello
+    # nodo: fascio di stoffa stretto fra i due teli, nascosto dietro anello
+    # e cintura: nella reference non sporgono barrette chiare ai lati della
+    # fibbia, quindi il nodo resta sotto il nastro scuro.
     knot = []
     for i in range(7):
         t = i / 6.0
-        ang = -0.30 + 0.60 * t
-        z = 1.0300 + 0.0055 * math.sin(math.pi * t)
-        knot.append(waist_pt(ang, z, 0.0158 - 0.0030 * abs(t - 0.5)))
-    objs.append(ribbon("Sash_Knot", knot, 0.0165, thickness=0.0036))
+        ang = -0.22 + 0.44 * t
+        z = 1.0295 + 0.0050 * math.sin(math.pi * t)
+        knot.append(waist_pt(ang, z, 0.0115 - 0.0025 * abs(t - 0.5)))
+    objs.append(ribbon("Sash_Knot", knot, 0.0150, thickness=0.0036))
     return objs
 
 
@@ -868,7 +879,7 @@ def build_belt():
     def surf(u, v):
         a = TAU * u
         width = 0.032 * (1.0 + 0.06 * math.sin(a * 2.0 + 1.2))
-        center = 1.0210 + 0.0215 * math.sin(a + 0.40)
+        center = 1.0210 + 0.0230 * math.sin(a + 0.40)
         t = v - 0.5
         z = center + t * width
         bulge = (1.0 - (2.0 * t) ** 2) ** 0.7
@@ -878,7 +889,7 @@ def build_belt():
         fold = (0.0026 * math.cos(4.0 * a + 46.0 * z)
                 + 0.0013 * math.cos(9.0 * a - 61.0 * z + 1.1))
         env = smoothstep(0.0, 0.18, (z - sash_top(a)) / (SASH_BOT_Z - sash_top(a)))
-        return waist_pt(a, z, 0.0172 + 0.0016 * bulge + fold * env)
+        return waist_pt(a, z, 0.0185 + 0.0016 * bulge + fold * env * 0.6)
     return [cloth_grid("Belt_Dark", 96, 8, surf, thickness=0.0022)]
 
 
@@ -893,20 +904,12 @@ RING_C = Vector((0.0, -0.1500, 1.0265))
 
 
 def build_ring():
-    """Fibbia d'ottone sottile con piccoli rivetti e placchetta di attacco."""
+    """Fibbia d'ottone: un cerchio pulito con la placchetta di attacco."""
     c = RING_C
+    # Nella reference l'anello e' un cerchio d'ottone liscio: niente rivetti
+    # ne' controanello in rilievo, solo il nastro scuro che si vede nel foro.
     objs = [torus("BeltRing", c, (0.0, 1.0, 0.0), 0.0322, 0.0046,
                   seg_major=56, seg_minor=12, squash=1.0, flat=0.46)]
-    # controanello interno in rilievo: da' lo spessore "da fibbia" del disegno
-    objs.append(torus("BeltRing_Inner", c + Vector((0, 0.0028, 0)),
-                      (0.0, 1.0, 0.0), 0.0268, 0.0016,
-                      seg_major=40, seg_minor=8, flat=0.80))
-    for k in range(8):
-        a = TAU * k / 8.0 + 0.13
-        p = c + Vector((0.0322 * math.cos(a), -0.0036,
-                        0.0322 * math.sin(a)))
-        objs.append(ellipsoid(f"Buckle_Stud{k}", p,
-                              (0.0009, 0.0007, 0.0009), segs=8, rings=5))
     # placchetta di attacco fra anello e staffa
     objs.append(ellipsoid("Buckle_Clasp", c + Vector((0.0, 0.0014, -0.0330)),
                           (0.0086, 0.0034, 0.0060), segs=16, rings=8))
@@ -953,12 +956,21 @@ def strap_point(x, z, off=0.0):
         a = math.asin(max(-1.0, min(1.0, x / rx)))
         base = waist_pt(a, z, 0.0168)
     else:
-        off_z = 0.0100 + 0.0285 * smoothstep(0.0, 0.011, SKIRT_TOP_Z - z)
+        # Nella reference la staffa e' un nastro di cuoio **liscio**: i bordi
+        # scendono dritti e la superficie non segue una piega per colonna.
+        # Seguire le creste una a una (come prima) ondulava i bordi e faceva
+        # affiorare il lino a strisce. Qui il nastro segue solo la bombatura
+        # del centro davanti e resta teso sopra le creste, come un cuoio
+        # appeso all'anello: margine costante sui veli pieghettati.
+        # raccordo morbido con il tratto in fascia: senza, il nastro piegava
+        # di netto sul bordo della gonna e leggeva come un collo ripiegato
+        t = smoothstep(0.86, SKIRT_TOP_Z, z)
+        off_z = 0.0420 - 0.0220 * t
         f_blend = smoothstep(0.0, 0.035, SKIRT_TOP_Z - z)
         rx, _ = radius(z, "base")
         a = math.asin(max(-1.0, min(1.0, x / max(rx, 1e-6))))
         base = surface(a, z, "base",
-                       extra=off_z + skirt_disp(a, z) * f_blend)
+                       extra=off_z + 0.50 * skirt_disp(0.0, z) * f_blend)
     # Una lieve convessita' mantiene naturale il nastro, senza tagli bianchi.
     y = base.y - off - 0.0018 * (x / w) ** 2
     return Vector((x, y, z))
@@ -1081,7 +1093,7 @@ def strap_gold():
     cz = Z(0.286)
     circle = [(r * math.cos(TAU * i / 64),
                cz + r * math.sin(TAU * i / 64)) for i in range(65)]
-    stroke(circle, 0.0030)
+    stroke(circle, 0.0026)
     stroke([(-0.0150, cz - r * 0.98), (0.0150, cz - r * 0.98)], 0.0025)
     stroke([(0.0, cz - r), (0.0, Z(0.372))], 0.0023)
     stroke([(-0.0105, Z(0.338)), (0.0105, Z(0.338))], 0.0021)
@@ -1099,18 +1111,19 @@ def strap_gold():
     stroke([(-halfw, Z(0.748)), (halfw, Z(0.748))], 0.0021)
     # --- doppio V della punta, contenuto nel nastro
     hw_v = strap_halfwidth(Z(0.930)) - 0.0050
-    stroke([(-hw_v, Z(0.800)), (0.0, Z(0.930)), (hw_v, Z(0.800))], 0.0030)
+    stroke([(-hw_v, Z(0.800)), (0.0, Z(0.930)), (hw_v, Z(0.800))], 0.0026)
     stroke([(-hw_v * 0.74, Z(0.818)), (0.0, Z(0.922)),
             (hw_v * 0.74, Z(0.818))], 0.0020)
-    # --- filetto dorato lungo i due bordi del nastro
+    # --- filetto dorato lungo i due bordi del nastro: nella reference e' un
+    #     filo sottile, non un bordo dipinto
     for side in (-1, 1):
         edge = []
         z = Z(0.055)
         while z > Z(0.800):
             hw = strap_halfwidth(z)
-            edge.append((side * (hw - 0.0038), z))
+            edge.append((side * (hw - 0.0046), z))
             z -= 0.010
-        stroke(edge, 0.0018)
+        stroke(edge, 0.0013)
     return objs
 
 

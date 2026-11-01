@@ -8,36 +8,39 @@ l'asset 3D:
 
 ## Cosa e' cambiato in questa revisione
 
-- **Solo il capo.** Gambe, piedi, caviglie fasciate e sandali sono stati tolti:
-  `DRESS1` ora e' un asset di abbigliamento, non mezzo personaggio. La fodera
-  interna chiude il capo, quindi guardando sotto l'orlo non si vede un guscio
-  vuoto, e si puo' montare su qualsiasi personaggio. L'origine resta a terra,
-  sotto l'orlo, come se il vestito fosse indossato.
-- **Pieghe a coltello al posto della sinusoide.** La gonna ha 31 pieghe
-  pressate: la faccia sale quasi dritta, la cresta resta tonda e la valle e'
-  un angolo vivo che disegna una linea d'ombra continua dalla vita all'orlo.
-  Prima le pieghe erano sinusoidi e, decimate all'8%, leggevano come stoffa
-  gonfia. La profondita' e' irregolare, quindi il ventaglio non e' meccanico.
-- **Falde lunghe a V.** Sei veli avorio con punta lunga e asimmetrica
-  (`Lap_FrontL/R`, `Lap_MidL/R`, `Lap_SideL/R`, piu' il telo diagonale
-  `Lap_WaistL`) e una lingua centrale sotto la staffa. Ogni falda segue la
-  stessa superficie pieghettata della gonna: la stoffa resta pieghettata
-  anche sui veli, invece di diventare un pannello di cartone.
+- **Pieghe morbide, non plissettatura.** Sulla reference le pieghe della gonna
+  sono campate di lino appeso: cresta tonda e larga, valle stretta in ombra,
+  una linea d'ombra continua dalla vita all'orlo. La vecchia plissettatura a
+  coltello (31 pieghe pressate) leggeva come ventaglio piegato. Ora le pieghe
+  sono 20, profonde fino a 4,2 cm all'orlo, con profondita' irregolare lungo
+  il giro perche' il drappeggio non sia meccanico.
+- **Silhouette ad A.** Il profilo svasa rapido sui fianchi e poi scende quasi
+  dritto, massimo all'orlo: niente pancia a campana e niente rientro sul
+  fondo (faceva palloncino). Larghezza all'orlo circa 1,65 volte la vita.
+- **Orlo a fazzoletto.** Tre lobi asimmetrici sull'orlo della gonna e veli
+  piu' lunghi e larghi: le punte davanti scendono sfalsate fin quasi alla
+  caviglia, con intacchi profondi fra una punta e l'altra, come nel disegno.
+- **Staffa di cuoio liscia.** Nella reference il nastro scuro e' teso: bordi
+  dritti, superficie senza pieghe. Prima seguiva una cresta per colonna e
+  ondulava i bordi; ora segue solo la bombatura del centro davanti e resta
+  sollevato con margine costante sopra i veli pieghettati. Filetto dorato ai
+  bordi piu' sottile e simboli appena alleggeriti.
+- **Anello pulito.** Come nel disegno la fibbia e' un semplice cerchio
+  d'ottone: tolti rivetti e controanello in rilievo, resta la placchetta che
+  attacca la staffa.
+- **Scialli piu' stretti.** I pannelli scuri sui fianchi sono lame strette
+  che si fermano a meta' coscia, con bordo dorato continuo e due sigilli
+  (gancio a spirale squadrata e rombo con barrette).
+- **Solo il capo.** Gambe, piedi, caviglie fasciate e sandali non ci sono:
+  `DRESS1` e' un asset di abbigliamento da montare su un personaggio. La
+  fodera interna chiude il capo, quindi guardando sotto l'orlo non si vede
+  un guscio vuoto. L'origine resta a terra, sotto l'orlo, come se il vestito
+  fosse indossato.
 - **Fascia in vita.** Corpo in lino con pieghe a spirale (solchi veri nella
   mesh) che si stringono verso l'anello, bordino superiore arrotolato perche'
-  dall'alto non si veda il taglio vivo, tre teli in croce con estremita'
+  dall'alto non si veda il taglio vivo, teli in croce con estremita'
   assottigliate che rientrano sotto gli altri strati, e il nodo sull'anello.
-  Sotto i teli corre la **cintura scura diagonale** che prosegue nella staffa;
-  sopra tutto l'**anello d'ottone** con rivetti e placchetta.
-- **Staffa centrale.** Nastro largo circa 6,3 cm, incollato alle pieghe:
-  per ogni punto si calcola l'angolo reale sulla gonna, quindi il lino non
-  affiora piu' ai bordi del nastro (prima lo spezzava in strisce). Ricamo
-  dorato ricostruito dal disegno: asta, rombo, cerchio con traversa e croce,
-  asta con barretta, rombo, fascia a pettine e doppio V della punta. I simboli
-  sono geometria appoggiata alla superficie e campionata sulla curvatura.
-- **Scialli laterali.** Pannelli di lana sui fianchi, dalla vita a meta'
-  coscia, con punta a V e bordo dorato continuo piu' due sigilli (gancio a
-  spirale squadrata e rombo con barrette).
+  Sotto i teli corre la **cintura scura diagonale** che prosegue nella staffa.
 - **Materiali.** Avorio piu' caldo, lana scura piu' neutra, ottone meno giallo,
   ricami dorati piu' sottili e meno in rilievo (prima sembravano plastica).
   PBR con texture incorporate e occlusione ambientale bakeata.
@@ -50,9 +53,9 @@ l'asset 3D:
 | File | Contenuto |
 |---|---|
 | `DRESS1.blend` | Scena Blender, mesh e texture incorporate; gruppi `keep` e `mid` per i dettagli |
-| `DRESS1.glb` | glTF 2.0 autonomo, **79.224 triangoli** |
-| `DRESS1_LOD1.glb` | **31.758 triangoli**, texture a metà risoluzione |
-| `DRESS1_LOD2.glb` | **11.407 triangoli**, texture a un quarto di risoluzione |
+| `DRESS1.glb` | glTF 2.0 autonomo, **79.223 triangoli** |
+| `DRESS1_LOD1.glb` | **31.757 triangoli**, texture a metà risoluzione |
+| `DRESS1_LOD2.glb` | **11.401 triangoli**, texture a un quarto di risoluzione |
 | `DRESS1.fbx` | FBX con geometria, materiali e texture supportate incorporate |
 | `DRESS1_tex/` | Texture PNG separate, inclusa l'AO |
 | [`QA.md`](QA.md) | Misure e controlli degli export GLB |
@@ -69,7 +72,7 @@ della stoffa.
 |---|---|
 | `DRESS1_Linen` | Gonna, falde, fascia e teli in croce |
 | `DRESS1_Wool` | Cintura, scialli e staffa |
-| `DRESS1_Gold` | Anello e rivetti d'ottone |
+| `DRESS1_Gold` | Anello d'ottone e placchetta di attacco |
 | `DRESS1_GoldTrim` | Ricami e simboli dorati |
 
 Le due superfici testurizzate usano base color, normal e ORM a **1024²**; l'AO
@@ -77,11 +80,11 @@ Le due superfici testurizzate usano base color, normal e ORM a **1024²**; l'AO
 ORM; nei GLB viene incorporata nel canale R delle mappe occlusion/
 metallic-roughness. Le texture dei LOD sono ridimensionate.
 
-Il capo misura **96,4 cm** in altezza (dalla vita all'orlo), circa 55,6 cm in
-larghezza e 47,4 cm in profondità. L'origine è a terra, sotto l'orlo: il
-vestito occupa la stessa quota che avrebbe indossato, quindi **l'orlo più basso
-sta a 12 cm da terra**. In Blender l'asse verticale è Z, mentre i GLB sono
-esportati Y-up. L'FBX usa Z-up e direzione frontale −Y.
+Il capo misura **96,0 cm** in altezza (dall'orlo basso al bordo della fascia),
+circa 56,1 cm in larghezza e 48,6 cm in profondità. L'origine è a terra, sotto
+l'orlo: il vestito occupa la stessa quota che avrebbe indossato, quindi
+**l'orlo più basso sta a 12,4 cm da terra**. In Blender l'asse verticale è Z,
+mentre i GLB sono esportati Y-up. L'FBX usa Z-up e direzione frontale −Y.
 
 ## Pipeline e verifiche
 
