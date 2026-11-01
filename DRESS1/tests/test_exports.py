@@ -88,10 +88,9 @@ class ExportTests(unittest.TestCase):
             glb = only_mesh()
             zs = [(glb.matrix_world @ v.co).z for v in glb.data.vertices]
             self.assertAlmostEqual(height, max(zs) - min(zs), delta=0.004)
-            # Il capo e' un vestito intero (corpetto + gonna): l'altezza va
-            # dalla scollatura all'orlo, con l'origine a terra sotto l'orlo.
-            self.assertGreater(height, 0.85)
-            self.assertLess(height, 1.5)
+            # Capo dalla vita all'orlo, con origine a terra.
+            self.assertGreater(height, 0.8)
+            self.assertLess(height, 1.1)
 
 
 if __name__ == "__main__":

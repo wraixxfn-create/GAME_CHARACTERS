@@ -8,8 +8,7 @@ geometrici dorati e scialli scuri stretti sui fianchi con rune.
 
 Questo e' il **solo capo**: gambe, piedi, caviglie e sandali sono stati tolti,
 cosi' la gonna resta un asset di abbigliamento da montare su un personaggio.
-L'apertura in vita e quella in fondo sono chiuse da una fodera interna, quindi
-il capo si guarda anche da sotto senza vedere un guscio vuoto.
+La vita e l'orlo rimangono aperti per adattare il capo al personaggio.
 
 La gonna e i lembi usano la stessa superficie ``surface(a, z, layer)`` e lo
 stesso spostamento di piega. Gli scialli hanno uno strato piu' teso; staffa e
@@ -436,23 +435,20 @@ def skirt_disp(a, z):
 
 
 def build_lining():
-    """Fodera interna che **chiude** il capo.
+    """Fodera interna aperta, senza corpo al suo interno.
 
     Il vestito non ha gambe dentro: senza fodera, guardando sotto l'orlo si
-    vede il guscio vuoto. La fodera scende dalla gonna e si richiude verso
-    l'interno formando una sacca profonda: da fuori si legge come il rovescio
-    della stoffa, da sotto il capo e' chiuso. Il fondo resta alto e stretto,
-    cosi' non si vede un "secchio" affacciato all'orlo.
+    vede il guscio vuoto. La fodera scende all'interno della gonna, lasciando spazio alle gambe.
     """
     nu, nv = 80, 14
 
     def surf(u, v):
         a = TAU * u
-        # v: 0 = sotto la gonna, 1 = fondo della sacca
+        # v: 0 = parte alta, 1 = bordo inferiore aperto
         z = 0.700 - 0.330 * v ** 1.08
-        # restringimento rapido: la sacca sta lontana dalle valli delle pieghe,
+        # la fodera sta lontana dalle valli delle pieghe,
         # altrimenti affiora fra una piega e l'altra come un cilindro chiaro
-        shrink = 1.0 - 0.62 * smoothstep(0.0, 1.0, v)
+        shrink = 1.0 - 0.08 * smoothstep(0.0, 1.0, v)
         rx = (prof(0.60)[0] - 0.070) * shrink
         ry = (prof(0.60)[1] - 0.062) * shrink
         p = Vector((rx * math.sin(a), -ry * math.cos(a), z))
@@ -482,84 +478,6 @@ def build_underskirt():
         return p
 
     return [cloth_grid("UnderSkirt", nu, nv, surf, thickness=0.0)]
-
-
-# --------------------------------------------------------------------------
-# corpetto
-# --------------------------------------------------------------------------
-
-# Il vestito della reference non e' una gonna staccata: e' un capo intero,
-# con il corpetto che sale dalla vita alle spalle e la stessa staffa scura
-# che scende dal collo all'orlo. Qui il corpetto e' un guscio cavo (nessun
-# corpo dentro), con scollatura e giromanica larghe, come un vestito da
-# indossare sopra un personaggio.
-BODICE_PROFILE = [
-    (0.964, 0.152, 0.126),
-    (1.020, 0.158, 0.130),
-    (1.080, 0.164, 0.134),
-    (1.140, 0.172, 0.140),
-    (1.200, 0.180, 0.145),
-    (1.260, 0.188, 0.150),
-    (1.320, 0.194, 0.154),
-    (1.380, 0.198, 0.156),
-]
-
-
-def bodice_prof(z):
-    pts = BODICE_PROFILE
-    if z <= pts[0][0]:
-        return pts[0][1], pts[0][2]
-    if z >= pts[-1][0]:
-        return pts[-1][1], pts[-1][2]
-    for i in range(len(pts) - 1):
-        z0, x0, y0 = pts[i]
-        z1, x1, y1 = pts[i + 1]
-        if z0 <= z <= z1:
-            t = (z - z0) / (z1 - z0)
-            t = t * t * (3.0 - 2.0 * t)
-            return x0 + (x1 - x0) * t, y0 + (y1 - y0) * t
-    return pts[-1][1], pts[-1][2]
-
-
-def bodice_top(a):
-    """Bordo alto del corpetto: scollatura davanti, giromanica ai lati.
-
-    Davanti il bordo scende a 1,29 m (la scollatura della reference), sulle
-    spalle sale a 1,36 m e ai lati scende a 1,24 m per aprire le giromaniche.
-    Il risultato e' un corpetto senza maniche, con il bordo che disegna la
-    scollatura e le due aperture laterali.
-    """
-    aa = abs(a)
-    front = -0.070 * math.exp(-(a / 0.55) ** 2)
-    back = -0.020 * math.exp(-((aa - math.pi) / 0.60) ** 2)
-    shoulder = 0.020 * math.sin(a) ** 2
-    armhole = -0.160 * math.exp(-((aa - math.pi / 2.0) / 0.50) ** 2)
-    return 1.360 + front + back + shoulder + armhole
-
-
-def bodice_point(a, z, extra=0.0):
-    rx, ry = bodice_prof(z)
-    rx += extra
-    ry += extra
-    return Vector((rx * math.sin(a), -ry * math.cos(a), z))
-
-
-def build_bodice():
-    """Corpetto in lino: un guscio cavo con pieghe morbide e bordo vivo."""
-    nu, nv = 64, 18
-
-    def surf(u, v):
-        # avvolge l'angolo su [-pi, pi] per far cadere la scollatura davanti
-        a = (TAU * u + math.pi) % TAU - math.pi
-        top = bodice_top(a)
-        z = SKIRT_TOP_Z + (top - SKIRT_TOP_Z) * v
-        # pieghe di lino morbide, piu' fitte in vita e quasi assenti al bordo
-        fold = (0.0016 * math.cos(a * 9.0 + z * 26.0)
-                + 0.0008 * math.cos(a * 17.0 - z * 18.0 + 1.3))
-        env = smoothstep(0.0, 0.12, v) * (1.0 - smoothstep(0.88, 1.0, v))
-        return bodice_point(a, z, extra=fold * env)
-
-    return [cloth_grid("Bodice", nu, nv, surf, thickness=0.0)]
 
 
 def build_skirt():
@@ -897,15 +815,6 @@ def build_sash():
 
     objs.append(cloth_grid("Sash_Liner", nu, 5, liner, thickness=0.0))
 
-    def floor(u, v):
-        a = TAU * u
-        r = 1.0 - 0.94 * v ** 1.6
-        z = sash_top(a) - 0.020 - 0.560 * v
-        return Vector(((WAIST_RX - 0.006) * r * math.sin(a),
-                       -(WAIST_RY - 0.006) * r * math.cos(a), z))
-
-    objs.append(cloth_grid("Sash_Floor", nu, 4, floor, thickness=0.0))
-
     # Bordo superiore arrotolato: un tubo di stoffa che gira attorno alla vita
     # e si richiude verso l'interno. Senza, dall'alto si vedeva il taglio vivo
     # della fascia come una lamiera.
@@ -956,7 +865,7 @@ def build_belt():
     """
     def surf(u, v):
         a = TAU * u
-        width = 0.032 * (1.0 + 0.06 * math.sin(a * 2.0 + 1.2))
+        width = 0.014 * (1.0 + 0.06 * math.sin(a * 2.0 + 1.2))
         center = 1.0210 + 0.0230 * math.sin(a + 0.40)
         t = v - 0.5
         z = center + t * width
@@ -967,7 +876,7 @@ def build_belt():
         fold = (0.0026 * math.cos(4.0 * a + 46.0 * z)
                 + 0.0013 * math.cos(9.0 * a - 61.0 * z + 1.1))
         env = smoothstep(0.0, 0.18, (z - sash_top(a)) / (SASH_BOT_Z - sash_top(a)))
-        return waist_pt(a, z, 0.0185 + 0.0016 * bulge + fold * env * 0.6)
+        return waist_pt(a, z, 0.0100 + 0.0016 * bulge + fold * env * 0.6)
     return [cloth_grid("Belt_Dark", 96, 8, surf, thickness=0.0022)]
 
 
@@ -998,7 +907,7 @@ def build_ring():
 # staffa con i simboli
 # --------------------------------------------------------------------------
 
-STRAP_TOP_Z = 1.2900  # scollatura del corpetto, davanti
+STRAP_TOP_Z = 1.0350  # nascosta dietro la fibbia, come nella reference
 STRAP_SHOULDER_Z = 0.398
 STRAP_TIP_Z = 0.322
 
@@ -1026,18 +935,10 @@ def strap_point(x, z, off=0.0):
     """
     w = max(strap_halfwidth(z), 1e-3)
     if z >= SKIRT_TOP_Z:
-        # Sopra la gonna la staffa sale sulla fascia, poi sul corpetto: nella
-        # reference il nastro scuro parte dalla scollatura e scende fino
-        # all'orlo. Il gradino di livello sotto la fascia resta nascosto dal
-        # bordo inferiore della fascia stessa.
-        if z <= 1.085:
-            rx = WAIST_RX + 0.0168
-            a = math.asin(max(-1.0, min(1.0, x / rx)))
-            base = waist_pt(a, z, 0.0168)
-        else:
-            rx, _ = bodice_prof(z)
-            a = math.asin(max(-1.0, min(1.0, x / rx)))
-            base = bodice_point(a, z, extra=0.0060)
+        # Nascosta dalla fibbia e appoggiata sulla fascia.
+        rx = WAIST_RX + 0.0168
+        a = math.asin(max(-1.0, min(1.0, x / rx)))
+        base = waist_pt(a, z, 0.0168)
     else:
         # Nella reference la staffa e' un nastro di cuoio **liscio**: i bordi
         # scendono dritti e la superficie non segue una piega per colonna.
@@ -1145,11 +1046,8 @@ def _gold2d(pts2d, width, off=0.0030, thick=0.0004):
 def strap_gold():
     """Ricamo centrale della staffa, ricostruito dal disegno.
 
-    Le posizioni sono espresse in frazione della lunghezza decorata, cosi' il
-    motivo resta corretto anche quando la staffa si allunga. Dall'alto: asta
-    sottile, rombo, cerchio con traversa e croce (il simbolo piu' grande del
-    disegno), asta lunga con barretta, rombo, asta, fascia a pettine e doppio
-    V della punta. Il filetto dorato corre anche sui due bordi.
+    I simboli si sviluppano sotto la fibbia: asta, rombo, cerchio,
+    secondo rombo e doppia V alla punta. I filetti seguono i bordi.
     """
     objs = []
 
@@ -1167,48 +1065,29 @@ def strap_gold():
         """Frazione della lunghezza decorata -> quota."""
         return top + (tip - top) * f
 
-    # --- scollatura: piccolo rombo e asta, come nel disegno
-    stroke([(0.0, Z(0.018)), (0.0, Z(0.052))], 0.0015)
-    diamond(Z(0.070), 0.0058, 0.0105)
-    # --- parte alta, appena sotto l'anello
-    stroke([(0.0, Z(0.085)), (0.0, Z(0.140))], 0.0015)
-    diamond(Z(0.172), 0.0072, 0.0135)
-    # --- cerchio con traversa e croce (simbolo centrale, piu' grande)
-    stroke([(0.0, Z(0.200)), (0.0, Z(0.228))], 0.0018)
-    r = 0.0218
-    cz = Z(0.286)
-    circle = [(r * math.cos(TAU * i / 64),
-               cz + r * math.sin(TAU * i / 64)) for i in range(65)]
-    stroke(circle, 0.0022)
-    stroke([(-0.0150, cz - r * 0.98), (0.0150, cz - r * 0.98)], 0.0021)
-    stroke([(0.0, cz - r), (0.0, Z(0.372))], 0.0019)
-    stroke([(-0.0105, Z(0.338)), (0.0105, Z(0.338))], 0.0017)
-    # --- asta lunga con barretta
-    stroke([(0.0, Z(0.378)), (0.0, Z(0.512))], 0.0019)
-    stroke([(-0.0100, Z(0.452)), (0.0100, Z(0.452))], 0.0015)
-    diamond(Z(0.544), 0.0092, 0.0150)
-    stroke([(0.0, Z(0.566)), (0.0, Z(0.660))], 0.0019)
-    # --- fascia decorata sopra la punta: barrette verticali fra due righe
-    halfw = strap_halfwidth(Z(0.690)) - 0.0068
-    stroke([(-halfw, Z(0.690)), (halfw, Z(0.690))], 0.0017)
-    for k in range(-4, 5):
-        x = k * halfw / 4.4
-        stroke([(x, Z(0.695)), (x, Z(0.744))], 0.0013)
-    stroke([(-halfw, Z(0.748)), (halfw, Z(0.748))], 0.0017)
-    # --- doppio V della punta, contenuto nel nastro
-    hw_v = strap_halfwidth(Z(0.930)) - 0.0050
-    stroke([(-hw_v, Z(0.800)), (0.0, Z(0.930)), (hw_v, Z(0.800))], 0.0022)
-    stroke([(-hw_v * 0.74, Z(0.818)), (0.0, Z(0.922)),
-            (hw_v * 0.74, Z(0.818))], 0.0016)
-    # --- filetto dorato lungo i due bordi del nastro: nella reference e' un
-    #     filo sottile, non un bordo dipinto
-    for side in (-1,):
+    # Motivo della reference: rombo, anello, piccolo rombo e punta a V.
+    # Inizia sotto la fibbia, non prosegue sopra la vita.
+    stroke([(0, Z(0.09)), (0, Z(0.19))], 0.0016)
+    diamond(Z(0.205), 0.0055, 0.009)
+    stroke([(0, Z(0.218)), (0, Z(0.240))], 0.0016)
+    r = 0.014
+    cz = Z(0.262)
+    stroke([(r * math.cos(TAU * i / 64), cz + r * math.sin(TAU * i / 64))
+            for i in range(65)], 0.0019)
+    stroke([(0, cz - r), (0, Z(0.49))], 0.0016)
+    stroke([(-0.006, Z(0.31)), (0.006, Z(0.31))], 0.0015)
+    diamond(Z(0.515), 0.006, 0.011)
+    stroke([(0, Z(0.53)), (0, Z(0.77))], 0.0016)
+    hw = strap_halfwidth(Z(0.84)) - 0.005
+    stroke([(-hw, Z(0.80)), (0, Z(0.945)), (hw, Z(0.80))], 0.0021)
+    stroke([(-hw * 0.68, Z(0.825)), (0, Z(0.92)),
+            (hw * 0.68, Z(0.825))], 0.0015)
+    for side in (-1, 1):
         edge = []
-        z = Z(0.055)
-        while z > Z(0.800):
-            hw = strap_halfwidth(z)
-            edge.append((side * (hw - 0.0046), z))
-            z -= 0.010
+        z = Z(0.06)
+        while z > Z(0.79):
+            edge.append((side * (strap_halfwidth(z) - 0.004), z))
+            z -= 0.01
         stroke(edge, 0.0011)
     return objs
 
@@ -1328,7 +1207,7 @@ def build_all():
 
     groups = {
         "fabric": (build_lining() + build_underskirt() + build_skirt()
-                   + build_bodice() + build_lappets()
+                   + build_lappets()
                    + [o for o in sash if o.name not in {m.name for m in mid}]),
         "dark": drapes + strap_body + build_buckle_back(),
         "gold": build_ring(),
@@ -1340,10 +1219,7 @@ def build_all():
         if key in KEEP_GROUPS:
             tag_keep(objs)
         all_objs += objs
-    # La fodera interna e' lana scura: da sotto l'orlo si legge come il
-    # rovescio del capo (nella reference il fondo e' scuro), non come un
-    # guscio di lino chiaro. Resta nel gruppo stoffa per non pesare sul
-    # budget dei dettagli.
+    # La fodera aperta usa la lana scura e resta nel gruppo stoffa.
     assign_material([o for o in groups["fabric"] if o.name == "Lining"],
                     "DRESS1_Wool")
     tag_group(mid, "mid")

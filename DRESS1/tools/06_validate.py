@@ -152,7 +152,7 @@ def main():
     checks = []
     base = rows[0]
     h = base["hi"][1] - base["lo"][1]      # glTF e' Y-up
-    checks.append(("scala metrica (altezza 0,9-1,5 m)", 0.9 <= h <= 1.5,
+    checks.append(("scala metrica (altezza 0,8-1,1 m)", 0.8 <= h <= 1.1,
                    f"{h:.3f} m"))
     zmin = base["lo"][1]
     # Il capo non ha piu' gambe e piedi: l'origine resta a terra, sotto

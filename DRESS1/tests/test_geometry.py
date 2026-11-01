@@ -55,8 +55,25 @@ class ShapeTests(unittest.TestCase):
                      "build_sandals", "LEG_PROFILE", "FOOT_SECTIONS"):
             self.assertFalse(hasattr(dress, name), name)
 
-    def test_lining_closes_the_garment(self):
-        # Senza fodera, guardando sotto l'orlo si vede il guscio vuoto.
+    def test_reference_is_waist_down_and_open_for_wearer(self):
+        self.assertFalse(hasattr(dress, "build_bodice"))
+        self.assertLess(dress.STRAP_TOP_Z, 1.08)
+        dress.reset_scene()
+        names = {o.name for o in dress.build_all()}
+        self.assertNotIn("Sash_Floor", names)
+        self.assertNotIn("Bodice", names)
+        bpy.context.view_layer.update()
+        dg = bpy.context.evaluated_depsgraph_get()
+        for ob in bpy.context.scene.objects:
+            if ob.type == "MESH":
+                tree = BVHTree.FromObject(ob, dg)
+                hit, _, _, _ = tree.ray_cast(Vector((0, 0, 1.2)),
+                                              Vector((0, 0, -1)), 1.1)
+                self.assertIsNone(hit, ob.name)
+
+
+    def test_lining_stays_inside_the_garment(self):
+        # La fodera resta dietro la stoffa esterna.
         lining = dress.build_lining()[0]
         zs = [v.co.z for v in lining.data.vertices]
         radii = [max(abs(v.co.x), abs(v.co.y)) for v in lining.data.vertices]
