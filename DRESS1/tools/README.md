@@ -40,15 +40,17 @@ python3 tools/06_validate.py
 
 ## Scelte importanti
 
-- **Pieghe a coltello:** `knife_fold(x)` descrive una piega pressata (faccia
-  quasi dritta, cresta tonda, valle ad angolo vivo) e `pleats()` la distribuisce
-  su 31 periodi con profondità irregolare. `skirt_disp(a, z)` è condivisa da
-  gonna, falde, scialli e staffa: chi segue la gonna si muove con lei.
+- **Pieghe morbide:** `drape_fold(x)` descrive una campata di lino appeso
+  (cresta tonda e larga, valle stretta in ombra) e `pleats()` la distribuisce
+  su 20 periodi con profondità irregolare, fino a 4,2 cm all'orlo.
+  `skirt_disp(a, z)` è condivisa da gonna, falde e scialli: chi segue la gonna
+  si muove con lei.
 - **Densità al primo colpo:** le griglie nascono alla risoluzione del LOD0
   (7 colonne per piega sulla gonna). Prima nascevano molto più fitte e la
   decimation le portava all'8%: le pieghe si scioglievano.
-- **Staffa incollata:** `strap_point()` ricava l'angolo reale sulla gonna per
-  ogni `x`, quindi il nastro segue le creste invece di tagliarle. I ricami
+- **Staffa tesa:** `strap_point()` ricava l'angolo reale sulla gonna per ogni
+  `x` ma segue solo la bombatura del centro davanti: il cuoio resta liscio,
+  con i bordi dritti e un margine costante sopra le creste dei veli. I ricami
   (`_gold2d`) sono griglie campionate sulla superficie e sollevate lungo la
   normale radiale.
 - **Capo chiuso:** `build_lining()` crea la sacca interna che chiude gonna e

@@ -64,16 +64,21 @@ class ShapeTests(unittest.TestCase):
         self.assertLess(max(radii), 0.20)       # e si stringe verso l'interno
         self.assertGreater(max(zs), 0.60)       # parte in alto, sotto la fascia
 
-    def test_knife_pleats_have_a_sharp_valley(self):
-        # Una piega a coltello ha la valle piu' stretta della cresta: il
-        # contrario di una sinusoide, che non legge come lino piegato.
+    def test_drape_folds_have_round_crests_and_narrow_valleys(self):
+        # Nella reference le pieghe sono campate morbide: cresta tonda e
+        # larga, valle stretta in ombra. Una sinusoide le avrebbe uguali
+        # (stoffa gonfia), una piega a coltello avrebbe la faccia dritta.
         xs = [i / 400.0 for i in range(400)]
-        vals = [dress.knife_fold(x) for x in xs]
+        vals = [dress.drape_fold(x) for x in xs]
         self.assertAlmostEqual(max(vals), 1.0, places=3)
         self.assertAlmostEqual(min(vals), 0.0, places=3)
-        # il 60% del periodo e' occupato dalla faccia (salita dolce)
-        rises = sum(1 for a, b in zip(vals, vals[1:]) if b > a + 1e-6)
-        self.assertGreater(rises, 190)
+        crest = sum(1 for v in vals if v > 0.5) / len(vals)
+        valley = sum(1 for v in vals if v < 0.5) / len(vals)
+        self.assertGreater(crest, 0.55)   # cresta larga
+        self.assertLess(valley, 0.45)     # valle stretta
+        # poche pieghe profonde, non una plissettatura fitta
+        self.assertLessEqual(dress.PLEAT_N, 20)
+        self.assertGreaterEqual(dress.PLEAT_DEPTH, 0.028)
 
     def test_sash_crosses_and_belt_get_a_material(self):
         # Regressione: questi due gruppi restavano senza materiale e nel
