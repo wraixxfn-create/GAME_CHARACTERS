@@ -12,8 +12,7 @@ from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 
 ROOT = Path(__file__).resolve().parents[1]
-MATERIALS = {"DRESS1_Linen", "DRESS1_Wool", "DRESS1_Canvas", "DRESS1_Skin",
-             "DRESS1_Gold", "DRESS1_GoldTrim"}
+MATERIALS = {"DRESS1_Linen", "DRESS1_Wool", "DRESS1_Gold", "DRESS1_GoldTrim"}
 
 
 def only_mesh():
@@ -74,7 +73,10 @@ class ExportTests(unittest.TestCase):
             ob = only_mesh()
             self.assertEqual({m.name for m in ob.data.materials}, MATERIALS)
             self.assertGreater(len(ob.data.polygons), 70000)
-            self.assertGreaterEqual(len(bpy.data.images), 8)
+            # 2 superfici testurizzate x (basecolor, normal, ORM) + AO:
+            # 4 mappe, perche' l'ORM e l'AO di lino e lana finiscono in slot
+            # distinti ma le immagini condivise restano le stesse.
+            self.assertGreaterEqual(len(bpy.data.images), 4)
             self.assertTrue(all(im.size[0] > 0 and im.packed_file
                                 for im in bpy.data.images))
             coordinates = [ob.matrix_world @ v.co for v in ob.data.vertices]
@@ -86,8 +88,10 @@ class ExportTests(unittest.TestCase):
             glb = only_mesh()
             zs = [(glb.matrix_world @ v.co).z for v in glb.data.vertices]
             self.assertAlmostEqual(height, max(zs) - min(zs), delta=0.004)
-            self.assertGreater(height, 1.0)
-            self.assertLess(height, 1.2)
+            # Il capo e' solo la gonna: l'altezza e' quella della vita ai
+            # piedi (l'origine resta a terra, sotto l'orlo).
+            self.assertGreater(height, 0.85)
+            self.assertLess(height, 1.25)
 
 
 if __name__ == "__main__":

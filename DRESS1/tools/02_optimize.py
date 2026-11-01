@@ -24,9 +24,14 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from common import (apply_modifiers, ensure_dir, tri_count, uv_unwrap,
                     work_dir)
 
-CLOTH_TARGET = 50000     # triangoli di stoffa (griglie, pieghe, gambe, piedi)
+# I budget sono tarati sulla densita' con cui il capo viene **costruito**:
+# le griglie nascono gia' alla risoluzione del LOD0, quindi la decimation non
+# deve piu' fare il lavoro grosso (la gonna scendeva all'8% della sua griglia e
+# le pieghe a coltello diventavano stoffa molle). I bersagli restano come
+# rete di sicurezza se una griglia viene alzata di risoluzione.
+CLOTH_TARGET = 43000     # stoffa (gonna, falde, fodera, fascia)
 MID_TARGET = 11000       # stoffa con bordi vivi (teli in croce, cintura)
-TRIM_TARGET = 17000      # triangoli dei dettagli (oro, staffa, fasciature)
+TRIM_TARGET = 26000      # triangoli dei dettagli (oro, staffa, scialli)
 
 
 # --------------------------------------------------------------------------

@@ -440,16 +440,6 @@ def main():
     wool_nrm = image_from_array("DRESS1_Wool_Normal", wnrm, "Non-Color")
     wool_orm = image_from_array("DRESS1_Wool_ORM", worm, "Non-Color")
 
-    cbase, cnrm, corm = canvas_maps()
-    canvas_base = image_from_array("DRESS1_Canvas_BaseColor", cbase, "sRGB")
-    canvas_nrm = image_from_array("DRESS1_Canvas_Normal", cnrm, "Non-Color")
-    canvas_orm = image_from_array("DRESS1_Canvas_ORM", corm, "Non-Color")
-
-    sbase, snrm, sorm = skin_maps()
-    skin_base = image_from_array("DRESS1_Skin_BaseColor", sbase, "sRGB")
-    skin_nrm = image_from_array("DRESS1_Skin_Normal", snrm, "Non-Color")
-    skin_orm = image_from_array("DRESS1_Skin_ORM", sorm, "Non-Color")
-
     mats = {}
     mats["DRESS1_Linen"] = make_material(
         "DRESS1_Linen", linen_base, linen_orm, linen_nrm, ao_img=ao_img,
@@ -459,12 +449,6 @@ def main():
         normal_strength=1.2, double_sided=True)
     mats["DRESS1_Gold"] = make_brass_material("DRESS1_Gold")
     mats["DRESS1_GoldTrim"] = make_trim_material("DRESS1_GoldTrim")
-    mats["DRESS1_Canvas"] = make_material(
-        "DRESS1_Canvas", canvas_base, canvas_orm, canvas_nrm, ao_img=ao_img,
-        normal_strength=0.8, double_sided=True)
-    mats["DRESS1_Skin"] = make_material(
-        "DRESS1_Skin", skin_base, skin_orm, skin_nrm, ao_img=ao_img,
-        normal_strength=0.6)
 
     # rimappa gli slot esistenti sui materiali nuovi
     for slot in ob.material_slots:
@@ -477,10 +461,6 @@ def main():
                 new = mats["DRESS1_GoldTrim"]
             elif "Gold" in old:
                 new = mats["DRESS1_Gold"]
-            elif "Canvas" in old:
-                new = mats["DRESS1_Canvas"]
-            elif "Skin" in old:
-                new = mats["DRESS1_Skin"]
             else:
                 new = mats["DRESS1_Linen"]
         slot.material = new
