@@ -26,6 +26,18 @@ class ShapeTests(unittest.TestCase):
         self.assertAlmostEqual(dress.skirt_disp(0.0, 0.60),
                                dress.skirt_disp(math.tau, 0.60), places=6)
 
+    def test_reference_drapes_end_above_lower_skirt(self):
+        # The dark side panels should frame the hips, not run to the hem.
+        for _, _, heights, _, _ in dress.drape_specs():
+            self.assertGreaterEqual(heights[-1][1], 0.55)
+            self.assertGreater(heights[-1][1] - dress.hem_z(0), 0.20)
+
+    def test_reference_buckle_is_delicate(self):
+        ring = dress.build_ring()[0]
+        xs = [v.co.x for v in ring.data.vertices]
+        self.assertLess(max(xs) - min(xs), 0.065)
+        self.assertGreater(max(xs) - min(xs), 0.055)
+
     def test_upper_legs_are_inside_the_waist(self):
         for z, rx, _, _ in dress.LEG_PROFILE:
             if z >= 0.78:

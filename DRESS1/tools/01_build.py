@@ -1,4 +1,4 @@
-"""DRESS1 — costruzione della geometria (v5, dettagli dal concept).
+"""DRESS1 — costruzione della geometria (dettagli dalla reference).
 
 Il capo e' ridisegnato da zero seguendo il concept: gonna in lino avorio a pieghe
 fitte, fascia incrociata in vita con anello d'ottone, staffa scura con simboli
@@ -726,10 +726,10 @@ def skirt_disp(a, z):
     """
     span = SKIRT_TOP_Z - hem_z(a)
     v = min(1.0, max(0.0, (SKIRT_TOP_Z - z) / max(span, 1e-6)))
-    f = pleats(a, v, 0.0, n=31, amp=0.0175, hem_fade=0.20)
+    f = pleats(a, v, 0.0, n=23, amp=0.0095, hem_fade=0.30)
     # piega secondaria molto bassa: toglie l'effetto "lamelle" fra le pieghe
-    f += 0.0014 * math.cos(a * 47.0 + v * 2.1) * smoothstep(0.15, 0.75, v)
-    f += 0.0011 * math.sin(a * 59.0 + v * 1.6) * smoothstep(0.05, 0.5, v)
+    f += 0.0008 * math.cos(a * 47.0 + v * 2.1) * smoothstep(0.15, 0.75, v)
+    f += 0.0006 * math.sin(a * 59.0 + v * 1.6) * smoothstep(0.05, 0.5, v)
     return f
 
 
@@ -751,7 +751,7 @@ def build_underskirt():
 
 
 def build_skirt():
-    """Gonna principale: pieghe fitte, orlo irregolare."""
+    """Gonna principale: pieghe morbide, orlo irregolare."""
     nu, nv = 288, 72
 
     def surf(u, v):
@@ -885,8 +885,8 @@ def build_lappets():
     R = math.radians
     defs = [
         # Due pannelli larghi: quello a sinistra e' piu' corto.
-        ("Lap_FrontL", -32, -28, 32, 34, 0.49, "lapB", 0.055, 0.6),
-        ("Lap_FrontR",  32,  29, 32, 35, 0.32, "lap",  0.050, 2.1),
+        ("Lap_FrontL", -32, -28, 32, 34, 0.47, "lapB", 0.075, 0.6),
+        ("Lap_FrontR",  32,  29, 32, 35, 0.37, "lap",  0.070, 2.1),
         # Due code strette incorniciano la staffa e scendono sotto il resto.
         ("Lap_CenterL", -21, -17, 17, 15, 0.246, "lap3", 0.052, 4.4),
         ("Lap_CenterR",  21,  17, 17, 15, 0.228, "lap3", 0.044, 5.8),
@@ -902,9 +902,9 @@ def build_lappets():
             name, [(0.0, R(a0)), (1.0, R(a1))],
             [(0.0, SKIRT_TOP_Z + 0.002), (1.0, zbot)], layer,
             width_table=[(0.0, R(w0)), (1.0, R(w1))],
-            tip=tip, tip_pow=1.05, seed=seed,
+            tip=tip, tip_pow=0.78, seed=seed,
             nu=112 if 'Center' not in name else 64, nv=66,
-            pleat_n=11, pleat_amp=0.012, corner_lift=0.022,
+            pleat_n=11, pleat_amp=0.012, corner_lift=0.030,
             edge_tuck=0.0, blend_top=0.92, top_taper=0.78))
     return objs
 
@@ -919,13 +919,13 @@ def drape_specs():
     R = math.radians
     return [
         ("Drape_L", [(0.0, R(58)), (0.5, R(66)), (1.0, R(74))],
-         [(0.0, 0.948), (1.0, 0.494)], [(0.0, R(13.5)), (1.0, R(12.0))], 1.2),
+         [(0.0, 0.946), (1.0, 0.570)], [(0.0, R(13.5)), (1.0, R(12.0))], 1.2),
         ("Drape_R", [(0.0, R(-58)), (0.5, R(-66)), (1.0, R(-74))],
-         [(0.0, 0.948), (1.0, 0.482)], [(0.0, R(13.5)), (1.0, R(12.0))], 3.4),
+         [(0.0, 0.946), (1.0, 0.558)], [(0.0, R(13.5)), (1.0, R(12.0))], 3.4),
         ("Drape_L2", [(0.0, R(86)), (1.0, R(104))],
-         [(0.0, 0.930), (1.0, 0.505)], [(0.0, R(10)), (1.0, R(8.5))], 5.0),
+         [(0.0, 0.930), (1.0, 0.565)], [(0.0, R(10)), (1.0, R(8.5))], 5.0),
         ("Drape_R2", [(0.0, R(-86)), (1.0, R(-104))],
-         [(0.0, 0.930), (1.0, 0.500)], [(0.0, R(10)), (1.0, R(8.5))], 7.1),
+         [(0.0, 0.930), (1.0, 0.560)], [(0.0, R(10)), (1.0, R(8.5))], 7.1),
     ]
 
 
@@ -1032,9 +1032,9 @@ def build_sash():
 
     # Telai in croce: si incrociano davanti all'anello (che li copre) e le due
     # diagonali divergono subito, come nel disegno. Il telo B passa sotto A.
-    objs.append(sash_wrap("Sash_CrossB", -3.08, 3.08, 1.058, 0.968, 0.036,
+    objs.append(sash_wrap("Sash_CrossB", -3.08, 3.08, 1.071, 0.956, 0.029,
                           0.0092, seed=3.1, taper=0.11, steep=2.9, nu=220))
-    objs.append(sash_wrap("Sash_CrossA", -3.02, 3.02, 0.974, 1.054, 0.040,
+    objs.append(sash_wrap("Sash_CrossA", -3.02, 3.02, 0.960, 1.067, 0.031,
                           0.0148, seed=0.9, taper=0.11, steep=2.9, nu=220))
     # seconda passata piu' stretta, visibile sul fianco destro della reference
     objs.append(sash_wrap("Sash_CrossC", 0.35, 2.75, 1.034, 0.964, 0.028,
@@ -1076,20 +1076,20 @@ RING_C = Vector((0.0, -0.1500, 1.0205))
 
 
 def build_ring():
-    """Fibbia d'ottone: anello piatto con rivetti e placchetta di attacco."""
+    """Fibbia d'ottone sottile con piccoli rivetti e placchetta di attacco."""
     c = RING_C
-    objs = [torus("BeltRing", c, (0.0, 1.0, 0.0), 0.0292, 0.0062,
+    objs = [torus("BeltRing", c, (0.0, 1.0, 0.0), 0.0270, 0.0038,
                   seg_major=84, seg_minor=20, squash=1.0, flat=0.46)]
     # controanello interno in rilievo: da' lo spessore "da fibbia" del disegno
     objs.append(torus("BeltRing_Inner", c + Vector((0, 0.0022, 0)),
-                      (0.0, 1.0, 0.0), 0.0219, 0.0019,
+                      (0.0, 1.0, 0.0), 0.0226, 0.0012,
                       seg_major=64, seg_minor=12, flat=0.80))
-    for k in range(12):
-        a = TAU * k / 12.0 + 0.13
-        p = c + Vector((0.0292 * math.cos(a), -0.0030,
-                        0.0292 * math.sin(a)))
+    for k in range(8):
+        a = TAU * k / 8.0 + 0.13
+        p = c + Vector((0.0270 * math.cos(a), -0.0030,
+                        0.0270 * math.sin(a)))
         objs.append(ellipsoid(f"Buckle_Stud{k}", p,
-                              (0.0015, 0.0011, 0.0015), segs=10, rings=6))
+                              (0.0009, 0.0007, 0.0009), segs=10, rings=6))
     # placchetta di attacco fra anello e staffa
     objs.append(ellipsoid("Buckle_Clasp", c + Vector((0.0, 0.0014, -0.0250)),
                           (0.0074, 0.0030, 0.0052), segs=24, rings=12))
@@ -1131,7 +1131,7 @@ def strap_point(x, z, off=0.0):
         # nascosto dal bordo inferiore della fascia stessa.
         base = waist_pt(0.0, z, 0.0102)
     else:
-        layer = 0.0100 + 0.0135 * smoothstep(0.0, 0.011, SKIRT_TOP_Z - z)
+        layer = 0.0100 + 0.0285 * smoothstep(0.0, 0.011, SKIRT_TOP_Z - z)
         f = skirt_disp(0.0, z) * smoothstep(0.0, 0.035, SKIRT_TOP_Z - z)
         base = surface(0.0, z, "base", extra=layer + f)
     # Una lieve convessita' mantiene naturale il nastro, senza tagli bianchi.
