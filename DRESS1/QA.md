@@ -4,9 +4,9 @@ Generato da `tools/06_validate.py` (parser glTF senza Blender).
 
 | file | tris | verts | materiali | mappe | MB | doppia faccia |
 |---|---|---|---|---|---|---|
-| `DRESS1.glb` | 77224 | 62550 | 4 | 6 | 8.55 | si |
-| `DRESS1_LOD1.glb` | 31093 | 28977 | 4 | 6 | 2.85 | si |
-| `DRESS1_LOD2.glb` | 11174 | 12621 | 4 | 6 | 0.97 | si |
+| `DRESS1.glb` | 77224 | 58476 | 4 | 6 | 8.35 | si |
+| `DRESS1_LOD1.glb` | 31093 | 27274 | 4 | 6 | 2.78 | si |
+| `DRESS1_LOD2.glb` | 11177 | 12265 | 4 | 6 | 0.95 | si |
 
 ## Controlli
 
@@ -18,7 +18,7 @@ Generato da `tools/06_validate.py` (parser glTF senza Blender).
 - [x] vertici finiti e UV/normali presenti in tutti i LOD — verificato
 - [x] texture incorporate in tutti i LOD — GLB autonomi
 - [x] nessuna mappa emissive — assente
-- [x] LOD progressivamente piu' leggeri — 77224 > 31093 > 11174
+- [x] LOD progressivamente piu' leggeri — 77224 > 31093 > 11177
 - [x] stessi materiali in tutti i LOD — ok
 - [x] doppia faccia sui materiali di stoffa — DRESS1_Linen, DRESS1_Wool
 - [x] nessuna animazione o skin (asset statico) — 0 clip, 0 skin
