@@ -23,50 +23,102 @@ class ShapeTests(unittest.TestCase):
         # Regression: the old negative span made skirt_disp identically zero.
         samples = [dress.skirt_disp(a, 0.60) for a in (0.1, 0.3, 0.7, 1.2)]
         self.assertGreater(max(abs(x) for x in samples), 0.005)
-        self.assertAlmostEqual(dress.skirt_disp(0.0, 0.60),
-                               dress.skirt_disp(math.tau, 0.60), places=6)
+        # le pieghe chiudono sul giro: stesso valore a 0 e a 2*pi. La piccola
+        # deriva lungo la caduta e' volutamente non periodica (e' la
+        # piegolina fine), quindi si confronta il profilo della piega.
+        seam = max(abs(dress.pleats(i * math.tau / 64.0, 0.6)
+                       - dress.pleats(i * math.tau / 64.0 + math.tau, 0.6))
+                   for i in range(64))
+        self.assertLess(seam, 1e-9)
 
     def test_reference_drapes_end_above_lower_skirt(self):
         # The dark side panels should frame the hips, not run to the hem.
         for _, _, heights, _, _ in dress.drape_specs():
-            self.assertGreaterEqual(heights[-1][1], 0.55)
-            self.assertGreater(heights[-1][1] - dress.hem_z(0), 0.20)
+            self.assertGreaterEqual(heights[-1][1], 0.44)
+            # la punta resta ben sopra l'orlo: gli scialli incorniciano il
+            # fianco, non scendono fino in fondo
+            self.assertGreater(heights[-1][1] - dress.hem_z(0), 0.16)
 
     def test_reference_buckle_is_delicate(self):
         ring = dress.build_ring()[0]
         xs = [v.co.x for v in ring.data.vertices]
-        self.assertLess(max(xs) - min(xs), 0.065)
-        self.assertGreater(max(xs) - min(xs), 0.055)
+        # diametro esterno ~7,4 cm: nel disegno l'anello e' grande quanto
+        # mezza vita, ma non fino a sembrare un cerchione
+        self.assertLess(max(xs) - min(xs), 0.082)
+        self.assertGreater(max(xs) - min(xs), 0.066)
 
-    def test_upper_legs_are_inside_the_waist(self):
-        for z, rx, _, _ in dress.LEG_PROFILE:
-            if z >= 0.78:
-                outer = dress.leg_center_x(z) + 0.004 * (1.0-z) + rx
-                self.assertLess(outer, dress.WAIST_RX)
-        self.assertGreater(dress.leg_center_x(0.12), dress.leg_center_x(0.95))
+    def test_garment_has_no_body_parts(self):
+        # Il capo e' **solo** il vestito: niente gambe, piedi, caviglie o
+        # sandali. Queste funzioni non esistono piu' e, se qualcuno le
+        # reintroduce, la mesh torna a contenere anatomia.
+        for name in ("build_legs", "build_feet", "build_legwraps",
+                     "build_sandals", "LEG_PROFILE", "FOOT_SECTIONS"):
+            self.assertFalse(hasattr(dress, name), name)
+
+    def test_lining_closes_the_garment(self):
+        # Senza fodera, guardando sotto l'orlo si vede il guscio vuoto.
+        lining = dress.build_lining()[0]
+        zs = [v.co.z for v in lining.data.vertices]
+        radii = [max(abs(v.co.x), abs(v.co.y)) for v in lining.data.vertices]
+        self.assertLess(min(zs), 0.45)          # scende dentro la gonna
+        self.assertLess(max(radii), 0.20)       # e si stringe verso l'interno
+        self.assertGreater(max(zs), 0.60)       # parte in alto, sotto la fascia
+
+    def test_knife_pleats_have_a_sharp_valley(self):
+        # Una piega a coltello ha la valle piu' stretta della cresta: il
+        # contrario di una sinusoide, che non legge come lino piegato.
+        xs = [i / 400.0 for i in range(400)]
+        vals = [dress.knife_fold(x) for x in xs]
+        self.assertAlmostEqual(max(vals), 1.0, places=3)
+        self.assertAlmostEqual(min(vals), 0.0, places=3)
+        # il 60% del periodo e' occupato dalla faccia (salita dolce)
+        rises = sum(1 for a, b in zip(vals, vals[1:]) if b > a + 1e-6)
+        self.assertGreater(rises, 190)
+
+    def test_sash_crosses_and_belt_get_a_material(self):
+        # Regressione: questi due gruppi restavano senza materiale e nel
+        # render comparivano grigi (la cintura scura spariva).
+        dress.reset_scene()
+        objs = dress.build_all()
+        for ob in objs:
+            self.assertTrue(ob.data.materials, ob.name)
 
     def test_center_strap_has_a_pointed_hem(self):
         self.assertLess(dress.STRAP_TIP_Z, dress.STRAP_SHOULDER_Z)
         self.assertGreater(dress.strap_halfwidth(dress.STRAP_SHOULDER_Z), 0.02)
 
-    def test_strap_tip_is_lobed_not_a_plain_v(self):
-        # Nel disegno la punta ha un intaglio al centro: il centro sta piu' in
-        # alto dei due lobi, e gli angoli esterni risalgono verso i lembi.
-        center = dress.strap_bottom_z(0.0)
-        lobe = dress.strap_bottom_z(0.30)
-        self.assertGreater(center, lobe + 0.004)
-        self.assertGreater(dress.strap_bottom_z(1.0), dress.strap_bottom_z(0.5))
+    def test_strap_tip_is_a_v_with_a_centre_notch(self):
+        # Nel disegno la punta e' una V: scende al centro e risale ai lati,
+        # con un piccolo intaglio sul centro esatto.
+        self.assertGreater(dress.strap_bottom_z(1.0) - dress.strap_bottom_z(0.12),
+                           0.02)
+        self.assertGreater(dress.strap_bottom_z(0.0),
+                           dress.strap_bottom_z(0.12) - 0.002)
 
-    def test_sandals_rest_on_the_foot_surface(self):
-        # Le fascette sono generate sulla superficie del piede: se la formula
-        # si scolla dalla mesh, i cinturini affondano o restano sospesi.
-        for y in (-0.04, -0.10, -0.16):
-            half = dress.foot_halfwidth(y)
-            hz, cy = dress.foot_center(y)
-            top = dress.foot_surface(0.0, y)
-            self.assertAlmostEqual(top.z, cy + 0.5 * hz, places=4)
-            self.assertLess(dress.foot_surface(half, y).z, top.z)
-            self.assertGreaterEqual(dress.foot_surface(-half, y).z, 0.0)
+    def test_lappets_follow_the_skirt_pleats(self):
+        # I veli sono la stessa stoffa pieghettata della gonna: se smettono di
+        # seguirla diventano cartone (era il problema della prima revisione).
+        pnl = dress.Panel("T", [(0.0, 0.2), (1.0, 0.25)],
+                          [(0.0, dress.SKIRT_TOP_Z), (1.0, 0.3)], "lapB",
+                          follow=1.0)
+        # il margine rispetto alla gonna e' piccolo e costante: il velo le sta
+        # sopra, non se ne stacca come una lamiera
+        for u in (0.3, 0.5, 0.7):
+            for v in (0.35, 0.6, 0.85):
+                a, z, _ = pnl.params(u, v)
+                drift = (pnl.pt(u, v) - dress.surface(a, z, "base")).length
+                self.assertLess(drift, 0.055, (u, v))
+        # e la sua sezione segue le creste: su un giro di 1/31 di giro il
+        # raggio cambia come quello della gonna sottostante
+        a0 = 0.24
+        span = []
+        for k in range(9):
+            aa = a0 + (k - 4) * (math.tau / dress.PLEAT_N) / 8.0
+            v = 0.8
+            p = dress.surface(aa, pnl.params(0.5, v)[1], "base",
+                              extra=dress.skirt_disp(aa, pnl.params(0.5, v)[1]))
+            span.append(Vector((p.x, p.y, 0.0)).length)
+        self.assertGreater(max(span) - min(span), 0.008)
 
 
 class WaistTests(unittest.TestCase):

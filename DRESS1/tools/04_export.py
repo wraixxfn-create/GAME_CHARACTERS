@@ -2,15 +2,16 @@
 
 Genera, a partire dal `.blend` con i materiali:
 
-* `DRESS1.blend`        scena completa (mesh + 6 materiali + texture packate)
+* `DRESS1.blend`        scena completa (mesh + 4 materiali + texture packate)
 * `DRESS1.glb`          glTF 2.0 binario, LOD0
 * `DRESS1_LOD1.glb`     35% dei triangoli
 * `DRESS1_LOD2.glb`     12% dei triangoli
 * `DRESS1.fbx`          FBX binary, unita' metriche, Z-up, fronte -Y
 * `DRESS1_tex/`         le mappe esportate singolarmente (per chi non usa glb)
 
-Gli export sono in metri e hanno origine ai piedi. I GLB sono Y-up; il FBX
-usa Z-up e fronte -Y, come la scena Blender.
+Gli export sono in metri e hanno origine a terra, sotto l'orlo (il capo
+occupa la stessa quota che avrebbe indossato). I GLB sono Y-up; il FBX usa
+Z-up e fronte -Y, come la scena Blender.
 """
 
 from __future__ import annotations

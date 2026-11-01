@@ -5,7 +5,8 @@ Genera in ``DRESS1/preview/``:
 * ``hero_front.png``     vista frontale, luce da studio
 * ``hero_three.png``     tre quarti
 * ``hero_waist.png``     primo piano su fascia, anello e staffa
-* ``hero_feet.png``      primo piano su caviglie e sandali
+* ``hero_hem.png``       primo piano sulle falde e sull'orlo
+* ``hero_inside.png``    vista dal basso: il capo e' chiuso dalla fodera
 * ``hero_back.png``      retro, luce da studio
 * ``turnaround.png``     quattro viste affiancate (0/90/180/270 gradi)
 * ``ref_compare.png``    concept dell'utente e render finale affiancati
@@ -91,14 +92,14 @@ def main():
     setup_world(0.45, BG)
     studio(target=(0, 0, 0.62))
     ground(-0.004)
-    cam = add_camera("Hero", (0, -3.3, 0.72), (0, 0, 0.55), lens=88)
+    cam = add_camera("Hero", (0, -3.3, 0.62), (0, 0, 0.62), lens=88)
     sc.camera = cam
 
-    frame(cam, 0, 3.3, (0, 0, 0.55), 0.72)
+    frame(cam, 0, 3.15, (0, 0, 0.62), 0.66)
     preview_to(os.path.join(PREVIEW, "hero_front.png"), res=(900, 1240),
               transparent=False)
 
-    frame(cam, 34, 3.3, (0, 0, 0.55), 0.74)
+    frame(cam, 34, 3.15, (0, 0, 0.62), 0.68)
     preview_to(os.path.join(PREVIEW, "hero_three.png"), res=(900, 1240),
               transparent=False)
 
@@ -108,15 +109,22 @@ def main():
     preview_to(os.path.join(PREVIEW, "hero_waist.png"), res=(1200, 1000),
               transparent=False)
 
-    # primo piano piedi
+    # primo piano falde e orlo
     cam.data.lens = 70
-    frame(cam, 18, 1.35, (0, -0.04, 0.14), 0.34)
-    preview_to(os.path.join(PREVIEW, "hero_feet.png"), res=(1200, 900),
+    frame(cam, 16, 1.35, (0, -0.04, 0.42), 0.46)
+    preview_to(os.path.join(PREVIEW, "hero_hem.png"), res=(1200, 900),
               transparent=False)
+
+    # dal basso, di tre quarti: si vede che la fodera chiude il capo invece di
+    # lasciare un guscio vuoto
+    cam.data.lens = 60
+    frame(cam, 28, 1.5, (0, 0, 0.52), 0.02)
+    preview_to(os.path.join(PREVIEW, "hero_inside.png"), res=(1000, 1000),
+              transparent=True)
 
     # dietro
     cam.data.lens = 88
-    frame(cam, 180, 3.3, (0, 0, 0.55), 0.74)
+    frame(cam, 180, 3.15, (0, 0, 0.62), 0.68)
     preview_to(os.path.join(PREVIEW, "hero_back.png"), res=(900, 1240),
               transparent=False)
 
@@ -124,7 +132,7 @@ def main():
     tmp = ensure_dir(os.path.join(work_dir(), "preview"))
     files = []
     for tag, ang in (("f", 0), ("s", 90), ("b", 180), ("q", 270)):
-        frame(cam, ang, 3.4, (0, 0, 0.55), 0.72)
+        frame(cam, ang, 3.2, (0, 0, 0.62), 0.66)
         p = os.path.join(tmp, f"turn_{tag}.png")
         preview_to(p, res=(620, 1000), transparent=True)
         files.append(p)

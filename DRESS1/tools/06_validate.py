@@ -155,14 +155,18 @@ def main():
     checks.append(("scala metrica (altezza 0,9-1,5 m)", 0.9 <= h <= 1.5,
                    f"{h:.3f} m"))
     zmin = base["lo"][1]
-    checks.append(("origine ai piedi (min |y| < 8 mm)", abs(zmin) < 0.008,
-                   f"{zmin*1000:+.1f} mm"))
+    # Il capo non ha piu' gambe e piedi: l'origine resta a terra, sotto
+    # l'orlo, cosi' il vestito si monta su un personaggio senza ricalcolare
+    # nulla. L'orlo piu' basso deve quindi stare fra 10 e 30 cm da terra.
+    checks.append(("origine a terra, sotto l'orlo (orlo 0,10-0,30 m)",
+                   0.10 <= zmin <= 0.30,
+                   f"orlo a {zmin*1000:.0f} mm"))
     cx = (base["lo"][0] + base["hi"][0]) * 0.5
     checks.append(("centrato sull'asse X (|x| < 20 mm)", abs(cx) < 0.020,
                    f"{cx*1000:+.1f} mm"))
     checks.append(("budget LOD0 (massimo 80.000 triangoli)",
                    0 < base["tris"] <= 80000, str(base["tris"])))
-    checks.append(("sei materiali", len(base["materials"]) == 6,
+    checks.append(("quattro materiali", len(base["materials"]) == 4,
                    str(len(base["materials"]))))
     checks.append(("vertici finiti e UV/normali presenti in tutti i LOD",
                    all(r["finite"] and r["uv_normals"] for r in rows), "verificato"))
@@ -177,7 +181,7 @@ def main():
     same_mats = all(set(r["materials"]) == set(base["materials"]) for r in rows[1:])
     checks.append(("stessi materiali in tutti i LOD", same_mats,
                    "ok" if same_mats else "materiali differenti"))
-    expected_double = {"DRESS1_Canvas", "DRESS1_Wool", "DRESS1_Linen"}
+    expected_double = {"DRESS1_Wool", "DRESS1_Linen"}
     actual_double = {m for m, d in zip(base["materials"], base["double_sided"]) if d}
     checks.append(("doppia faccia sui materiali di stoffa", actual_double == expected_double,
                    ", ".join(sorted(actual_double))))
@@ -189,7 +193,7 @@ def main():
                    ", ".join(base["extensions"]) or "nessuna"))
 
     js = read_glb(os.path.join(REPO, "DRESS1.glb"))[0]
-    textured = {"DRESS1_Linen", "DRESS1_Wool", "DRESS1_Canvas", "DRESS1_Skin"}
+    textured = {"DRESS1_Linen", "DRESS1_Wool"}
     pbr_ok = all(
         "baseColorTexture" in m.get("pbrMetallicRoughness", {}) and
         "metallicRoughnessTexture" in m.get("pbrMetallicRoughness", {}) and
@@ -197,7 +201,7 @@ def main():
         for m in js.get("materials", []) if m.get("name") in textured
     ) and textured.issubset(set(base["materials"]))
     checks.append(("base color, normal, ORM e AO sulle superfici PBR", pbr_ok,
-                   "4 materiali testurizzati"))
+                   "2 materiali testurizzati"))
 
     lines = ["# QA DRESS1", "",
              "Generato da `tools/06_validate.py` (parser glTF senza Blender).", "",

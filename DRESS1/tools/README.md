@@ -9,7 +9,7 @@ restano fuori dal repository nella directory `DRESS1_WORK`.
 | `02_optimize.py` | Build | LOD0 ottimizzato, UV e gruppo `keep` in `opt/` |
 | `03_material.py` | LOD0 ottimizzato | Materiali, texture e bake AO in `mat/` |
 | `04_export.py` | LOD0 con materiali | `.blend`, GLB LOD0/1/2, FBX e PNG nel repo |
-| `05_preview.py` | `DRESS1.blend` | Render in `preview/` |
+| `05_preview.py` | `DRESS1.blend` | Render in `preview/` (frontale, tre quarti, vita, orlo, interno, retro, turnaround) |
 | `06_validate.py` | Tre GLB | `QA.md`; esce con errore se un controllo fallisce |
 
 ## Esecuzione
@@ -40,17 +40,25 @@ python3 tools/06_validate.py
 
 ## Scelte importanti
 
-- **Pieghe continue:** `skirt_disp(a, z)` usa la distanza positiva fra vita e
-  orlo ed è condivisa con le falde. Le armoniche intere sono continue alla
-  cucitura; i solchi delle falde sono geometria, non linee dipinte.
+- **Pieghe a coltello:** `knife_fold(x)` descrive una piega pressata (faccia
+  quasi dritta, cresta tonda, valle ad angolo vivo) e `pleats()` la distribuisce
+  su 31 periodi con profondità irregolare. `skirt_disp(a, z)` è condivisa da
+  gonna, falde, scialli e staffa: chi segue la gonna si muove con lei.
+- **Densità al primo colpo:** le griglie nascono alla risoluzione del LOD0
+  (7 colonne per piega sulla gonna). Prima nascevano molto più fitte e la
+  decimation le portava all'8%: le pieghe si scioglievano.
+- **Staffa incollata:** `strap_point()` ricava l'angolo reale sulla gonna per
+  ogni `x`, quindi il nastro segue le creste invece di tagliarle. I ricami
+  (`_gold2d`) sono griglie campionate sulla superficie e sollevate lungo la
+  normale radiale.
+- **Capo chiuso:** `build_lining()` crea la sacca interna che chiude gonna e
+  fascia, così l'asset si guarda anche da sotto senza mostrare un guscio vuoto.
 - **Teli in vita:** `sash_wrap` stende un nastro fra due angoli con estremità
   assottigliate e salita ripida al centro, così l'incrocio davanti forma la X
   del nodo e le estremità si nascondono sotto gli altri strati.
-- **Calzari:** le fascette del sandalo nascono da `foot_surface(x, y)`, la
-  stessa superellisse usata per la mesh del piede, quindi restano aderenti.
 - **Spessore dei ricami:** i motivi laterali vengono proiettati sul pannello e
-  sollevati oltre il suo spessore di 3,2 mm. La staffa e i suoi simboli usano
-  la stessa superficie curva.
+  sollevati di 2,6 mm; sulla staffa i simboli usano la normale radiale calcolata
+  nel punto, non una pendenza media.
 - **Budget separati su tre livelli:** i gruppi `keep` (nastri, fibbia, ricami)
   e `mid` (teli in croce e cintura, stoffa con bordi vivi e pochi centimetri di
   larghezza) proteggono i dettagli delicati. Il LOD0 usa circa 50k triangoli
