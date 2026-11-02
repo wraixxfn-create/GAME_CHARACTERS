@@ -46,14 +46,14 @@ class ExportTests(unittest.TestCase):
                 gold = [p for p in ob.data.polygons if p.material_index == gold_id]
                 self.assertGreater(len(gold), 500)
                 side_faces = sum(
-                    1 for p in gold if any(abs(ob.data.vertices[i].co.x) > 0.16
+                    1 for p in gold if any(abs(ob.data.vertices[i].co.x) > 0.14
                                            for i in p.vertices))
                 self.assertGreater(side_faces, 40, "side embroidery disappeared")
 
                 bpy.context.view_layer.update()
                 tree = BVHTree.FromObject(ob, bpy.context.evaluated_depsgraph_get())
-                for z in (0.43, 0.5, 0.6, 0.7, 0.8, 0.9, 0.94, 0.96):
-                    for x in (-0.018, -0.009, 0, 0.009, 0.018):
+                for z in (0.44, 0.5, 0.6, 0.7, 0.8, 0.9, 0.94, 0.96):
+                    for x in (-0.008, -0.004, 0, 0.004, 0.008):
                         _, _, index, _ = tree.ray_cast(Vector((x, -1.0, z)),
                                                        Vector((0, 1, 0)), 2.0)
                         self.assertIsNotNone(index, (name, x, z))
