@@ -29,9 +29,9 @@ from common import (apply_modifiers, ensure_dir, tri_count, uv_unwrap,
 # deve piu' fare il lavoro grosso (la gonna scendeva all'8% della sua griglia e
 # le pieghe a coltello diventavano stoffa molle). I bersagli restano come
 # rete di sicurezza se una griglia viene alzata di risoluzione.
-CLOTH_TARGET = 41500     # stoffa (gonna, falde, fodera, fascia)
-MID_TARGET = 11000       # stoffa con bordi vivi (teli in croce, cintura)
-TRIM_TARGET = 25500      # triangoli dei dettagli (oro, staffa, scialli)
+CLOTH_TARGET = 47500     # stoffa (gonna, veli, falde, fodera)
+MID_TARGET = 11000       # stoffa con bordi vivi (fascia, cinghie, cintura)
+TRIM_TARGET = 20000      # triangoli dei dettagli (oro, staffa, sciarpe)
 
 
 # --------------------------------------------------------------------------
@@ -136,7 +136,7 @@ def finalize(ob):
     ob.select_set(True)
     bpy.ops.object.shade_smooth()
     try:
-        bpy.ops.object.shade_smooth_by_angle(angle=math.radians(46.0))
+        bpy.ops.object.shade_smooth_by_angle(angle=math.radians(40.0))
     except Exception:
         pass
     ob.modifiers.clear()

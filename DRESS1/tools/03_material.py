@@ -230,15 +230,15 @@ def make_trim_material(name):
     out = nt.nodes.new("ShaderNodeOutputMaterial")
     bsdf = nt.nodes.new("ShaderNodeBsdfPrincipled")
     nt.links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
-    bsdf.inputs["Base Color"].default_value = (0.520, 0.410, 0.210, 1.0)
-    bsdf.inputs["Metallic"].default_value = 0.55
-    bsdf.inputs["Roughness"].default_value = 0.44
+    bsdf.inputs["Base Color"].default_value = (0.585, 0.442, 0.170, 1.0)
+    bsdf.inputs["Metallic"].default_value = 0.72
+    bsdf.inputs["Roughness"].default_value = 0.32
     mat.use_backface_culling = True
     return mat
 
 
-def make_brass_material(name, base_rgb=(0.470, 0.360, 0.170),
-                        metallic=0.82, roughness=0.42):
+def make_brass_material(name, base_rgb=(0.512, 0.378, 0.172),
+                        metallic=0.90, roughness=0.33):
     """Ottone a tinta piena.
 
     Un anello di 6 cm occupa pochi texel della mappa: una texture a chiazze
@@ -335,18 +335,20 @@ def make_material(name, base_img, orm_img, normal_img=None, ao_img=None,
 def linen_maps():
     h = cloth_map(TEX, seed=7, fiber=0.8)
     base = np.zeros((TEX, TEX, 3), np.float32)
-    tone = 0.80 + 0.20 * h
-    # avorio caldo con variazioni di tono (la reference e' color crema)
-    base[..., 0] = 0.882 * tone
-    base[..., 1] = 0.840 * tone * 0.995
-    base[..., 2] = 0.752 * tone * 0.99
-    # macchie di usura
+    tone = 0.93 + 0.07 * h
+    # avorio caldo con variazioni di tono (la reference e' color crema, non
+    # bianco ottico: il lino campionato sta su #E9E2D8)
+    base[..., 0] = 0.800 * tone
+    base[..., 1] = 0.752 * tone * 0.995
+    base[..., 2] = 0.664 * tone * 0.99
+    # usura appena percettibile: la reference e' lino pulito, non stoffa
+    # macchiata. Prima le chiazze si leggevano come lividi sul tessuto.
     wear = fbm(TEX, base_cells=3, octaves=5, seed=31)
-    base *= (0.90 + 0.18 * wear)[..., None]
+    base *= (0.975 + 0.05 * wear)[..., None]
     base = (base * 255).clip(0, 255).astype(np.uint8)
 
-    nrm = normal_from_height(h, strength=1.0)
-    rough = np.clip(0.62 + 0.16 * (1.0 - h) + 0.06 * wear, 0, 1)
+    nrm = normal_from_height(h, strength=0.85)
+    rough = np.clip(0.66 + 0.12 * (1.0 - h) + 0.03 * wear, 0, 1)
     orm = np.zeros((TEX, TEX, 3), np.uint8)
     orm[..., 0] = 255
     orm[..., 1] = (rough * 255).astype(np.uint8)
@@ -357,10 +359,13 @@ def linen_maps():
 def wool_maps():
     h = cloth_map(TEX, seed=21, fiber=1.3)
     base = np.zeros((TEX, TEX, 3), np.float32)
-    tone = 0.72 + 0.28 * h
-    base[..., 0] = 0.132 * tone
-    base[..., 1] = 0.108 * tone
-    base[..., 2] = 0.086 * tone
+    tone = 0.92 + 0.08 * h
+    # Il pannello scuro della reference e' un lana bruno-nera calda (#4f4740
+    # il valore medio campionato). Un albedo troppo basso (0,05) legge come
+    # nero piatto: qui resta scuro, ma con il calore del disegno.
+    base[..., 0] = 0.070 * tone
+    base[..., 1] = 0.057 * tone
+    base[..., 2] = 0.045 * tone
     nrm = normal_from_height(h, strength=1.3)
     rough = np.clip(0.78 + 0.12 * (1.0 - h), 0, 1)
     orm = np.zeros((TEX, TEX, 3), np.uint8)

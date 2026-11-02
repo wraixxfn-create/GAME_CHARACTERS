@@ -43,6 +43,12 @@ def studio(target=(0, 0, 0.62), scale=1.0):
     L.append(add_area("Rim", (-0.8 * scale, 2.5 * scale, 2.0 * scale), target,
                       energy=150 * scale ** 2, size=1.8 * scale,
                       color=(1.0, 0.92, 0.82)))
+    # Luce dal basso: senza, la fodera interna e il risvolto sotto l'orlo
+    # cadono nel nero e il capo sembra un guscio vuoto. E' debole e larga,
+    # quindi non schiarisce la stoffa esterna.
+    L.append(add_area("Interior", (0.0, -1.5 * scale, -0.35 * scale),
+                      (0, 0, 0.55), energy=26 * scale ** 2,
+                      size=1.6 * scale, color=(1.0, 0.96, 0.90)))
     return L
 
 
